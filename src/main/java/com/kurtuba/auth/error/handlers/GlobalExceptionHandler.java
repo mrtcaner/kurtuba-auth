@@ -1,9 +1,9 @@
-package com.parafusion.auth.error.handlers;
+package com.kurtuba.auth.error.handlers;
 
-import com.parafusion.auth.error.enums.ErrorEnum;
-import com.parafusion.auth.error.exception.BusinessLogicException;
-import com.parafusion.auth.error.exception.ResourceNotFoundException;
-import com.parafusion.auth.utils.response.ResponseError;
+import com.kurtuba.auth.error.enums.ErrorEnum;
+import com.kurtuba.auth.error.exception.BusinessLogicException;
+import com.kurtuba.auth.error.exception.ResourceNotFoundException;
+import com.kurtuba.auth.utils.response.ResponseError;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;

@@ -1,16 +1,16 @@
-package com.parafusion.auth.service;
+package com.kurtuba.auth.service;
 
-import com.parafusion.auth.data.model.AuthProvider;
-import com.parafusion.auth.data.model.ClientType;
-import com.parafusion.auth.data.model.UserToken;
-import com.parafusion.auth.data.model.dto.TokenDto;
-import com.parafusion.auth.data.model.User;
-import com.parafusion.auth.data.repository.UserRepository;
+import com.kurtuba.auth.data.model.AuthProvider;
+import com.kurtuba.auth.data.model.ClientType;
+import com.kurtuba.auth.data.model.UserToken;
+import com.kurtuba.auth.data.model.dto.TokenDto;
+import com.kurtuba.auth.data.model.User;
+import com.kurtuba.auth.data.repository.UserRepository;
 
-import com.parafusion.auth.data.repository.UserTokenRepository;
-import com.parafusion.auth.error.enums.ErrorEnum;
-import com.parafusion.auth.error.exception.BusinessLogicException;
-import com.parafusion.auth.utils.TokenUtils;
+import com.kurtuba.auth.data.repository.UserTokenRepository;
+import com.kurtuba.auth.error.enums.ErrorEnum;
+import com.kurtuba.auth.error.exception.BusinessLogicException;
+import com.kurtuba.auth.utils.TokenUtils;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;

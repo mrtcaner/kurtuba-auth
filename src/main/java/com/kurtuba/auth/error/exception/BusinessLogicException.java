@@ -1,6 +1,6 @@
-package com.parafusion.auth.error.exception;
+package com.kurtuba.auth.error.exception;
 
-import com.parafusion.auth.error.enums.ErrorEnum;
+import com.kurtuba.auth.error.enums.ErrorEnum;
 import lombok.Data;
 
 @Data

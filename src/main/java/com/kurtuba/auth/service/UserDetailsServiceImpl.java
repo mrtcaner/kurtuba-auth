@@ -1,8 +1,8 @@
-package com.parafusion.auth.service;
+package com.kurtuba.auth.service;
 
-import com.parafusion.auth.data.model.MyUserDetails;
-import com.parafusion.auth.data.model.User;
-import com.parafusion.auth.data.repository.UserRepository;
+import com.kurtuba.auth.data.model.MyUserDetails;
+import com.kurtuba.auth.data.model.User;
+import com.kurtuba.auth.data.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

@@ -1,6 +1,6 @@
-package com.parafusion.auth.utils;
+package com.kurtuba.auth.utils;
 
-import com.parafusion.auth.data.model.ClientType;
+import com.kurtuba.auth.data.model.ClientType;
 import io.jsonwebtoken.Jwts;
 import org.jose4j.jwe.JsonWebEncryption;
 import org.jose4j.jwk.PublicJsonWebKey;

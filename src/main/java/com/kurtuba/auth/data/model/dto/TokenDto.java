@@ -1,4 +1,4 @@
-package com.parafusion.auth.data.model.dto;
+package com.kurtuba.auth.data.model.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

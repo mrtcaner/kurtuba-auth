@@ -1,4 +1,4 @@
-package com.parafusion.auth.error.handlers;
+package com.kurtuba.auth.error.handlers;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

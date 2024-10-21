@@ -1,4 +1,4 @@
-package com.parafusion.auth.utils;
+package com.kurtuba.auth.utils;
 
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.JWKSet;

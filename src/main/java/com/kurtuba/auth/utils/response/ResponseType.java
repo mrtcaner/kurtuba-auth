@@ -1,4 +1,4 @@
-package com.parafusion.auth.utils.response;
+package com.kurtuba.auth.utils.response;
 
 public enum ResponseType {
 

@@ -1,4 +1,4 @@
-package com.parafusion.auth;
+package com.kurtuba.auth;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
