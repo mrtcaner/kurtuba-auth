@@ -1,4 +1,4 @@
-package com.parafusion.auth.data.model;
+package com.kurtuba.auth.data.model;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

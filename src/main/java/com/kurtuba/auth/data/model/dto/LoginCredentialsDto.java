@@ -1,6 +1,6 @@
-package com.parafusion.auth.data.model.dto;
+package com.kurtuba.auth.data.model.dto;
 
-import com.parafusion.auth.data.model.ClientType;
+import com.kurtuba.auth.data.model.ClientType;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.NotEmpty;

@@ -1,4 +1,4 @@
-package com.parafusion.auth.error.exception;
+package com.kurtuba.auth.error.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;

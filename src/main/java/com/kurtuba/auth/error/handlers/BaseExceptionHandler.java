@@ -1,8 +1,8 @@
-package com.parafusion.auth.error.handlers;
+package com.kurtuba.auth.error.handlers;
 
 
-import com.parafusion.auth.error.enums.ErrorEnum;
-import com.parafusion.auth.utils.response.ResponseError;
+import com.kurtuba.auth.error.enums.ErrorEnum;
+import com.kurtuba.auth.utils.response.ResponseError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;

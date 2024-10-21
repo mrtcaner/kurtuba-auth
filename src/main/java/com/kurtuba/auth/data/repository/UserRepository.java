@@ -1,6 +1,6 @@
-package com.parafusion.auth.data.repository;
+package com.kurtuba.auth.data.repository;
 
-import com.parafusion.auth.data.model.User;
+import com.kurtuba.auth.data.model.User;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;

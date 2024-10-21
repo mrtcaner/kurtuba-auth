@@ -1,10 +1,10 @@
-package com.parafusion.auth.config;
+package com.kurtuba.auth.config;
 
-import com.parafusion.auth.error.handlers.CustomAuthenticationEntryPoint;
-import com.parafusion.auth.data.model.CustomOAuth2User;
-import com.parafusion.auth.service.CustomOAuth2UserService;
-import com.parafusion.auth.service.UserDetailsServiceImpl;
-import com.parafusion.auth.service.UserService;
+import com.kurtuba.auth.error.handlers.CustomAuthenticationEntryPoint;
+import com.kurtuba.auth.data.model.CustomOAuth2User;
+import com.kurtuba.auth.service.CustomOAuth2UserService;
+import com.kurtuba.auth.service.UserDetailsServiceImpl;
+import com.kurtuba.auth.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

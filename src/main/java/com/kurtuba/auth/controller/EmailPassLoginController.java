@@ -1,9 +1,9 @@
-package com.parafusion.auth.controller;
+package com.kurtuba.auth.controller;
 
-import com.parafusion.auth.data.model.ClientType;
-import com.parafusion.auth.data.model.dto.LoginCredentialsDto;
-import com.parafusion.auth.data.model.dto.TokenDto;
-import com.parafusion.auth.service.UserService;
+import com.kurtuba.auth.data.model.ClientType;
+import com.kurtuba.auth.data.model.dto.LoginCredentialsDto;
+import com.kurtuba.auth.data.model.dto.TokenDto;
+import com.kurtuba.auth.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

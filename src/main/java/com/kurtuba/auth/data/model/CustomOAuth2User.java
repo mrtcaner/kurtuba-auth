@@ -1,4 +1,4 @@
-package com.parafusion.auth.data.model;
+package com.kurtuba.auth.data.model;
 
 import java.io.Serializable;
 import java.util.Collection;

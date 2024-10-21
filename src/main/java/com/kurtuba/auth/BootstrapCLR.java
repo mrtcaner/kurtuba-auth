@@ -1,8 +1,8 @@
-package com.parafusion.auth;
+package com.kurtuba.auth;
 
-import com.parafusion.auth.data.model.AuthProvider;
-import com.parafusion.auth.data.model.User;
-import com.parafusion.auth.service.UserService;
+import com.kurtuba.auth.data.model.AuthProvider;
+import com.kurtuba.auth.data.model.User;
+import com.kurtuba.auth.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;

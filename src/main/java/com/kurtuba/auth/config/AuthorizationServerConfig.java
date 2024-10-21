@@ -1,11 +1,11 @@
-package com.parafusion.auth.config;
+package com.kurtuba.auth.config;
 
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
-import com.parafusion.auth.data.model.CustomOAuth2User;
-import com.parafusion.auth.service.UserService;
+import com.kurtuba.auth.data.model.CustomOAuth2User;
+import com.kurtuba.auth.service.UserService;
 import org.jose4j.jwe.JsonWebEncryption;
 import org.jose4j.keys.PbkdfKey;
 import org.jose4j.lang.JoseException;

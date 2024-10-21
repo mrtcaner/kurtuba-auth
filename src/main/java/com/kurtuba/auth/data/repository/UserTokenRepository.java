@@ -1,7 +1,7 @@
-package com.parafusion.auth.data.repository;
+package com.kurtuba.auth.data.repository;
 
-import com.parafusion.auth.data.model.ClientType;
-import com.parafusion.auth.data.model.UserToken;
+import com.kurtuba.auth.data.model.ClientType;
+import com.kurtuba.auth.data.model.UserToken;
 import org.springframework.data.repository.CrudRepository;
 
 public interface UserTokenRepository extends CrudRepository<UserToken, Long> {

@@ -1,4 +1,4 @@
-package com.parafusion.auth.error.enums;
+package com.kurtuba.auth.error.enums;
 
 public enum ErrorEnum {
 
