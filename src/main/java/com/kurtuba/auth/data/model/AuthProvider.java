@@ -4,7 +4,7 @@ package com.kurtuba.auth.data.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 
 public enum AuthProvider {
-    PARAFUSION, GOOGLE, FACEBOOK, GITHUB;
+    KURTUBA, GOOGLE, FACEBOOK, GITHUB;
 
     @JsonCreator
     public static AuthProvider create(String value) {
