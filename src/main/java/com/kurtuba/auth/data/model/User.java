@@ -30,7 +30,7 @@ public class User implements Serializable {
     @Size(min = 2, max = 100, message = "Name must be between 2-100 characters.")
     private String name;
 
-    @Nullable//Can be null for different providers but not for parafusion
+    @Nullable//Can be null for different providers but not for kurtuba
     private String surname;
 
     @NotEmpty

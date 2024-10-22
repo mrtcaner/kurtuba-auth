@@ -19,7 +19,7 @@ import java.util.Map;
 @Component
 public class TokenUtils {
 
-    @Value("${parafusion.rsa-jwk.key}")
+    @Value("${kurtuba.rsa-jwk.key}")
     private String rsaJwkKey;
     @Value("classpath:rsa-jwk")
     Resource rsaJwkFile;

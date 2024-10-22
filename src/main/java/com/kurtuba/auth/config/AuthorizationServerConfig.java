@@ -42,7 +42,7 @@ import java.util.*;
 @Configuration
 public class AuthorizationServerConfig {
 
-    @Value( "${parafusion.rsa-jwk.key}" )
+    @Value( "${kurtuba.rsa-jwk.key}" )
     private String rsaJwkKey;
     @Value("classpath:rsa-jwk")
     Resource rsaJwkFile;

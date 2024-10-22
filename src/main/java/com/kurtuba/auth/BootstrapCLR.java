@@ -25,7 +25,7 @@ public class BootstrapCLR implements CommandLineRunner {
         user.setPassword(new BCryptPasswordEncoder().encode("pass"));
         user.setName("John");
         user.setSurname("Doe");
-        user.setAuthProvider(AuthProvider.PARAFUSION);
+        user.setAuthProvider(AuthProvider.KURTUBA);
         user.setDateCreated(LocalDateTime.now());
         userService.saveUser(user);
         user = new User();
@@ -34,7 +34,7 @@ public class BootstrapCLR implements CommandLineRunner {
         user.setPassword(new BCryptPasswordEncoder().encode("pass"));
         user.setName("John");
         user.setSurname("Doe");
-        user.setAuthProvider(AuthProvider.PARAFUSION);
+        user.setAuthProvider(AuthProvider.KURTUBA);
         user.setDateCreated(LocalDateTime.now());
         userService.saveUser(user);*/
 
