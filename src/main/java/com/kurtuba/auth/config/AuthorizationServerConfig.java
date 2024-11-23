@@ -212,24 +212,32 @@ public class AuthorizationServerConfig {
                 jwtGenerator, accessTokenGenerator, refreshTokenGenerator);
     }
 
+    /**
+     * Alternate token customizer
+     * Works for OAuth2TokenFormat.REFERENCE
+     * @return
+     */
     @Bean
     public OAuth2TokenCustomizer<OAuth2TokenClaimsContext> accessTokenCustomizer() {
-        //Works for OAuth2TokenFormat.REFERENCE
         return context -> {
             CustomOAuth2User oauthUser = new CustomOAuth2User((OAuth2User) SecurityContextHolder.getContext()
                     .getAuthentication().getPrincipal());
             OAuth2TokenClaimsSet.Builder claims = context.getClaims();
             claims.claim("sub", userService.getUserByUsernameOrEmail(oauthUser.getEmail()).getId());
-            claims.claim("jti", UUID.randomUUID());
         };
     }
 
+    /**
+     *  Default token customizer
+     *  Works for OAuth2TokenFormat.SELF_CONTAINED which is the default token setting
+     * @return
+     */
     @Bean
     OAuth2TokenCustomizer<JwtEncodingContext> jwtCustomizer() {
-        //Works for OAuth2TokenFormat.SELF_CONTAINED
+        //
         return context -> {
+            //Make sure it is not a refresh token
             if (context.getTokenType().equals(OAuth2TokenType.ACCESS_TOKEN)) {
-
                 context.getClaims().claim("sub", userService.getUserByUsernameOrEmail(context.getClaims().build().getClaim("sub")).getId());
             }
         };
