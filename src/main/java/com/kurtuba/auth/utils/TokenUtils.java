@@ -6,6 +6,7 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.kurtuba.auth.data.model.AuthProvider;
 import com.kurtuba.auth.data.model.ClientType;
+import com.kurtuba.auth.data.model.JWTClaimsEnum;
 import com.kurtuba.auth.data.model.dto.UserRegistrationDto;
 import com.nimbusds.jose.shaded.gson.JsonObject;
 import com.nimbusds.jose.shaded.gson.JsonParser;
@@ -51,11 +52,11 @@ public class TokenUtils {
         Calendar cal = Calendar.getInstance();
         cal.add(Calendar.YEAR,5);
         return Jwts.builder()
-                .setHeader(Map.of("kid",publicJsonWebKey.getKeyId()))
+                .setHeader(Map.of(JWTClaimsEnum.KID.getDisplayName(),publicJsonWebKey.getKeyId()))
                 .setIssuer(authServerIssuerUrl)
                 .setSubject(userId)
                 .setAudience(clientType.getClientTypeName())
-                .claim("jti", UUID.randomUUID())
+                .setId(UUID.randomUUID().toString())
                 .setIssuedAt(new Date())
                 .setNotBefore(new Date())
                 .setExpiration(cal.getTime())

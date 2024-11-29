@@ -1,6 +1,8 @@
 package com.kurtuba.auth.controller;
 
 
+import com.kurtuba.auth.data.model.JWTClaimsEnum;
+import com.kurtuba.auth.data.model.RoleEnum;
 import com.kurtuba.auth.service.UserService;
 import jakarta.validation.constraints.NotEmpty;
 import org.eclipse.jetty.http.HttpStatus;
@@ -14,20 +16,30 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("user")
 public class UserController {
 
-    @Autowired
-    UserService userService;
+    final UserService userService;
 
-    //todo this method must be for internal use only.
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    /**
+     * this method is for internal use only
+     */
     @GetMapping("/{id}")
     @ResponseBody
     public ResponseEntity getUserById(@PathVariable @NotEmpty String id, JwtAuthenticationToken principal) {
-        if(principal == null){
+        if(!isAuthorized(principal)){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED_401).body("");
         }
         return ResponseEntity.status(HttpStatus.OK_200).body(userService.getUserById(id));
     }
 
-    //todo only certain info must be shared through a DTO
+    /**
+     * anyone with a valid token can access
+     * todo only certain info must be shared through a DTO
+     * @param principal
+     * @return
+     */
     @GetMapping("/info")
     @ResponseBody
     public ResponseEntity getUserInfo(JwtAuthenticationToken principal) {
@@ -35,5 +47,22 @@ public class UserController {
            return ResponseEntity.status(HttpStatus.UNAUTHORIZED_401).body("");
         }
         return ResponseEntity.status(HttpStatus.OK_200).body(userService.getUserById(principal.getName()));
+    }
+
+    private boolean isAuthorized(JwtAuthenticationToken principal){
+        // only authenticated users are allowed
+        if(principal == null){
+            return false;
+        }
+        // token must have a role claim
+        if(principal.getTokenAttributes().get(JWTClaimsEnum.ROLE.getDisplayName()) == null){
+            return false;
+        }
+        // role has to be "SERVICE"
+        if(!principal.getTokenAttributes().get(JWTClaimsEnum.ROLE.getDisplayName()).equals(RoleEnum.SERVICE.name())){
+            return false;
+        }
+
+        return true;
     }
 }

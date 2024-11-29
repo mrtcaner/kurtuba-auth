@@ -4,7 +4,8 @@ import lombok.Data;
 
 public enum RoleEnum{
     USER(0,"User"),
-    ADMIN(1,"Admin");
+    ADMIN(1,"Admin"),
+    SERVICE(2,"Service");
 
     RoleEnum(int id, String displayName){
         this.id = id;
@@ -27,6 +28,8 @@ public enum RoleEnum{
             return RoleEnum.USER;
         if(RoleEnum.ADMIN.displayName.equals(name.toUpperCase()))
             return RoleEnum.ADMIN;
+        if(RoleEnum.SERVICE.displayName.equals(name.toUpperCase()))
+            return RoleEnum.SERVICE;
         return null;
     }
 }

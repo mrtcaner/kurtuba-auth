@@ -1,6 +1,8 @@
 package com.kurtuba.auth.config;
 
 import com.kurtuba.auth.data.model.CustomOAuth2User;
+import com.kurtuba.auth.data.model.JWTClaimsEnum;
+import com.kurtuba.auth.data.model.RoleEnum;
 import com.kurtuba.auth.data.model.UserToken;
 import com.kurtuba.auth.data.repository.UserTokenRepository;
 import com.kurtuba.auth.service.UserService;
@@ -111,21 +113,21 @@ public class AuthorizationServerConfig {
                                             "jti" -> {JsonPrimitive@24073} ""73d69d7e-dfc5-45b0-9130-975e5644e0d9""
                                          */
                                         // no need to save short-lived service-client tokens
-                                        if(!tokenObj.get("sub").getAsString().contains("service-client")) {
+                                        if(!tokenObj.get(JWTClaimsEnum.SUB.getDisplayName()).getAsString().contains("service-client")) {
 
 
-                                            Instant instant = Instant.ofEpochSecond(Long.parseLong(tokenObj.get("exp").getAsString()));
+                                            Instant instant = Instant.ofEpochSecond(Long.parseLong(tokenObj.get(JWTClaimsEnum.EXP.getDisplayName()).getAsString()));
                                             ZoneId zoneId = ZoneId.systemDefault();
                                             LocalDateTime expirationDate = instant.atZone(zoneId).toLocalDateTime();
                                             //System.out.println("instant1:" + instant);
-                                            instant = Instant.ofEpochSecond(Long.parseLong(tokenObj.get("iat").getAsString()));
+                                            instant = Instant.ofEpochSecond(Long.parseLong(tokenObj.get(JWTClaimsEnum.IAT.getDisplayName()).getAsString()));
                                             LocalDateTime issuedAt = instant.atZone(zoneId).toLocalDateTime();
                                             //System.out.println("instant2:" + instant);
 
                                             UserToken userToken = UserToken.builder()
-                                                    .userId(tokenObj.get("sub").getAsString())
-                                                    .clientId(tokenObj.get("aud").getAsString())
-                                                    .jti(tokenObj.get("jti").getAsString())
+                                                    .userId(tokenObj.get(JWTClaimsEnum.SUB.getDisplayName()).getAsString())
+                                                    .clientId(tokenObj.get(JWTClaimsEnum.AUD.getDisplayName()).getAsString())
+                                                    .jti(tokenObj.get(JWTClaimsEnum.JTI.getDisplayName()).getAsString())
                                                     .expirationDate(expirationDate)
                                                     .createdDate(issuedAt)
                                                     .build();
@@ -228,8 +230,16 @@ public class AuthorizationServerConfig {
         return context -> {
             CustomOAuth2User oauthUser = new CustomOAuth2User((OAuth2User) SecurityContextHolder.getContext()
                     .getAuthentication().getPrincipal());
-            OAuth2TokenClaimsSet.Builder claims = context.getClaims();
-            claims.claim("sub", userService.getUserByUsernameOrEmail(oauthUser.getEmail()).getId());
+
+            if(context.getAuthorizationGrantType().equals(AuthorizationGrantType.CLIENT_CREDENTIALS)){
+                //a service is asking for an access token to call another service
+                // make it a short-lived token
+                context.getClaims().claim(JWTClaimsEnum.EXP.getDisplayName(), Instant.now().plus(Duration.ofMinutes(1)));
+                context.getClaims().claim(JWTClaimsEnum.ROLE.getDisplayName(), "SERVICE");
+            }else{
+                //a user is logging in. replace username/email with userId
+                context.getClaims().claim(JWTClaimsEnum.SUB.getDisplayName(), userService.getUserByUsernameOrEmail(oauthUser.getEmail()).getId());
+            }
         };
     }
 
@@ -248,11 +258,12 @@ public class AuthorizationServerConfig {
                 if(context.getAuthorizationGrantType().equals(AuthorizationGrantType.CLIENT_CREDENTIALS)){
                     //a service is asking for an access token to call another service
                     // make it a short-lived token
-                    context.getClaims().claim("exp", Instant.now().plus(Duration.ofMinutes(1)));
+                    context.getClaims().claim(JWTClaimsEnum.EXP.getDisplayName(), Instant.now().plus(Duration.ofMinutes(1)));
+                    context.getClaims().claim(JWTClaimsEnum.ROLE.getDisplayName(), RoleEnum.SERVICE.name());
 
                 }else{
                     //a user is logging in. replace username/email with userId
-                    context.getClaims().claim("sub", userService.getUserByUsernameOrEmail(context.getClaims().build().getClaim("sub")).getId());
+                    context.getClaims().claim(JWTClaimsEnum.SUB.getDisplayName(), userService.getUserByUsernameOrEmail(context.getClaims().build().getClaim("sub")).getId());
                 }
 
             }
