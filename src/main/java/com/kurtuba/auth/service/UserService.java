@@ -1,13 +1,12 @@
 package com.kurtuba.auth.service;
 
 import com.kurtuba.auth.data.model.*;
-import com.kurtuba.auth.data.model.dto.TokenDto;
+import com.kurtuba.auth.data.model.dto.TokensDto;
 import com.kurtuba.auth.data.model.dto.UserDto;
 import com.kurtuba.auth.data.model.dto.UserRegistrationDto;
 import com.kurtuba.auth.data.model.dto.UserRegistrationOtherProviderDto;
 import com.kurtuba.auth.data.repository.UserRepository;
 import com.kurtuba.auth.data.repository.UserRoleRepository;
-import com.kurtuba.auth.data.repository.UserTokenRepository;
 import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.error.exception.BusinessLogicException;
 import com.kurtuba.auth.utils.TokenUtils;
@@ -20,11 +19,10 @@ import org.hibernate.SessionFactory;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -37,20 +35,17 @@ public class UserService {
 
     private final UserRoleRepository userRoleRepository;
 
-    private final UserTokenRepository userTokenRepository;
+    private final UserTokenService userTokenService;
 
     private final SessionFactory sessionFactory;
 
-    private final TokenUtils tokenUtils;
-
     private final EmailService emailService;
 
-    public UserService(UserRepository userRepository, UserRoleRepository userRoleRepository, UserTokenRepository userTokenRepository, SessionFactory sessionFactory, TokenUtils tokenUtils, EmailService emailService) {
+    public UserService(UserRepository userRepository, UserRoleRepository userRoleRepository, UserTokenService userTokenService, SessionFactory sessionFactory, EmailService emailService) {
         this.userRepository = userRepository;
         this.userRoleRepository = userRoleRepository;
-        this.userTokenRepository = userTokenRepository;
+        this.userTokenService = userTokenService;
         this.sessionFactory = sessionFactory;
-        this.tokenUtils = tokenUtils;
         this.emailService = emailService;
     }
 
@@ -98,7 +93,8 @@ public class UserService {
      * <p>
      * transaction is managed manually because we may save data to db and then throw BusinessLogicException
      */
-    public void authenticate(String emailUsername, String pass) {
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    public User authenticate(String emailUsername, String pass) {
         User user = userRepository.getUserByEmailOrUsername(emailUsername);
         if (user == null) {
             throw new BusinessLogicException(ErrorEnum.LOGIN_INVALID_CREDENTIALS);
@@ -142,34 +138,16 @@ public class UserService {
         //save user and token
         session.getTransaction().commit();
         session.close();
+
+        return user;
     }
 
     @Transactional
-    public TokenDto generateAccessTokenForLoginByRestRequest(String emailUsername, ClientType clientType) {
-        User user = userRepository.getUserByEmailOrUsername(emailUsername);
-        if (user == null) {
-            throw new BusinessLogicException(ErrorEnum.LOGIN_INVALID_CREDENTIALS);
-        }
+    public TokensDto generateTokensForLoginByRestRequest(String emailUsername, String pass, ClientType clientType) {
 
-        TokenDto tokenDto = TokenDto.builder().access_token(tokenUtils.generateToken(user.getId(), clientType)).build();
+        User user = authenticate(emailUsername,pass);
 
-        JsonObject decodeTokenPayload = TokenUtils.decodeTokenPayload(tokenDto.getAccess_token());
-        //Extract exp date
-        Instant instant = Instant.ofEpochSecond(Long.parseLong(decodeTokenPayload.get("exp").getAsString()));
-        ZoneId zoneId = ZoneId.systemDefault();
-        LocalDateTime expirationDate = instant.atZone(zoneId).toLocalDateTime();
-
-        UserToken userToken = UserToken.builder()
-                .userId(user.getId())
-                .clientId(decodeTokenPayload.get("aud").getAsString())
-                .jti(decodeTokenPayload.get("jti").getAsString())
-                .createdDate(LocalDateTime.now())
-                .expirationDate(expirationDate)
-                .build();
-
-        userTokenRepository.save(userToken);
-
-        return tokenDto;
+        return userTokenService.createAndSaveTokens(user.getId(),clientType);
     }
 
     @Transactional

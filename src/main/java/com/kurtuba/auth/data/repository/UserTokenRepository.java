@@ -1,12 +1,14 @@
 package com.kurtuba.auth.data.repository;
 
-import com.kurtuba.auth.data.model.ClientType;
 import com.kurtuba.auth.data.model.UserToken;
-import com.nimbusds.oauth2.sdk.id.ClientID;
 import org.springframework.data.repository.CrudRepository;
 
-public interface UserTokenRepository extends CrudRepository<UserToken, Long> {
+import java.time.LocalDateTime;
+
+public interface UserTokenRepository extends CrudRepository<UserToken, String> {
 
 	//UserToken getUserTokenByUserIdAndClientTypeAndActive(String email, String clientId, boolean active);
+
+    UserToken findByJtiAndBlockedAndRefreshTokenExpAfter(String jti, boolean blocked, LocalDateTime exp);
 
 }
