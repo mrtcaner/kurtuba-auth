@@ -19,9 +19,8 @@ public class EmailPassLoginController {
     @ResponseBody
     public ResponseEntity login(@Valid @RequestBody LoginCredentialsDto loginCredentials) {
         //throws exception if authentication fails
-        userService.authenticate(loginCredentials.getEmailUsername(), loginCredentials.getPass());
         //no exception means successful authentication. Generate token and return
-        return ResponseEntity.status(HttpStatus.OK).body(userService.generateAccessTokenForLoginByRestRequest(loginCredentials.getEmailUsername(), loginCredentials.getClientType()));
+        return ResponseEntity.status(HttpStatus.OK).body(userService.generateTokensForLoginByRestRequest(loginCredentials.getEmailUsername(), loginCredentials.getPass(), loginCredentials.getClientType()));
 
 
     }

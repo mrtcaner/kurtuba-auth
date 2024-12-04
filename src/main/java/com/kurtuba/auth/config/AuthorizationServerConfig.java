@@ -1,8 +1,8 @@
 package com.kurtuba.auth.config;
 
 import com.kurtuba.auth.data.model.*;
-import com.kurtuba.auth.data.repository.UserTokenRepository;
 import com.kurtuba.auth.service.UserService;
+import com.kurtuba.auth.service.UserTokenService;
 import com.kurtuba.auth.utils.TokenUtils;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -21,6 +21,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.user.OAuth2User;
@@ -39,7 +40,6 @@ import org.springframework.security.oauth2.server.authorization.settings.ClientS
 import org.springframework.security.oauth2.server.authorization.settings.OAuth2TokenFormat;
 import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
 import org.springframework.security.oauth2.server.authorization.token.*;
-import org.springframework.security.oauth2.server.authorization.web.authentication.OAuth2AccessTokenResponseAuthenticationSuccessHandler;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint;
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
@@ -52,6 +52,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
@@ -73,14 +74,17 @@ public class AuthorizationServerConfig {
 
     private final UserService userService;
 
-    private final UserTokenRepository userTokenRepository;
+    private final UserTokenService userTokenService;
 
     private final SessionFactory sessionFactory;
 
-    public AuthorizationServerConfig(UserService userService, UserTokenRepository userTokenRepository, SessionFactory sessionFactory) {
+    private final TokenUtils tokenUtils;
+
+    public AuthorizationServerConfig(UserService userService, UserTokenService userTokenService, SessionFactory sessionFactory, TokenUtils tokenUtils) {
         this.userService = userService;
-        this.userTokenRepository = userTokenRepository;
+        this.userTokenService = userTokenService;
         this.sessionFactory = sessionFactory;
+        this.tokenUtils = tokenUtils;
     }
 
     @Bean
@@ -105,14 +109,14 @@ public class AuthorizationServerConfig {
                                             "sub" -> {JsonPrimitive@24061} ""3f29802a-64fa-41e0-be86-82f3c24ea982""
                                             "aud" -> {JsonPrimitive@24063} ""mobile-client""
                                             "nbf" -> {JsonPrimitive@24065} "1732304516"
-                                            "iss" -> {JsonPrimitive@24067} ""http://localhost:8080""
+                                            "iss" -> {JsonPrimitive@24067} "http://localhost:8080"
                                             "exp" -> {JsonPrimitive@24069} "2596304516"
                                             "iat" -> {JsonPrimitive@24071} "1732304516"
-                                            "jti" -> {JsonPrimitive@24073} ""73d69d7e-dfc5-45b0-9130-975e5644e0d9""
+                                            "jti" -> {JsonPrimitive@24073} "73d69d7e-dfc5-45b0-9130-975e5644e0d9"
                                          */
+                                        CustomOAuth2AccessTokenResponseAuthenticationSuccessHandler customHandler;
                                         // no need to save short-lived service-client tokens
                                         if(!tokenObj.get(JWTClaimsEnum.SUB.getDisplayName()).getAsString().contains("service-client")) {
-
 
                                             Instant instant = Instant.ofEpochSecond(Long.parseLong(tokenObj.get(JWTClaimsEnum.EXP.getDisplayName()).getAsString()));
                                             ZoneId zoneId = ZoneId.systemDefault();
@@ -122,23 +126,30 @@ public class AuthorizationServerConfig {
                                             LocalDateTime issuedAt = instant.atZone(zoneId).toLocalDateTime();
                                             //System.out.println("instant2:" + instant);
 
+                                            String refreshToken = tokenUtils.generateRefreshToken();
                                             UserToken userToken = UserToken.builder()
                                                     .userId(tokenObj.get(JWTClaimsEnum.SUB.getDisplayName()).getAsString())
                                                     .clientId(tokenObj.get(JWTClaimsEnum.AUD.getDisplayName()).getAsString())
                                                     .jti(tokenObj.get(JWTClaimsEnum.JTI.getDisplayName()).getAsString())
                                                     .expirationDate(expirationDate)
+                                                    .refreshToken(new BCryptPasswordEncoder().encode(new String(Base64.getDecoder().decode(refreshToken))))
+                                                    .refreshTokenExp(LocalDateTime.now().plusMonths(3))//todo to properties file
                                                     .createdDate(issuedAt)
                                                     .build();
 
                                             Session session = sessionFactory.openSession();
                                             session.beginTransaction();
-                                            userTokenRepository.save(userToken);
+                                            userTokenService.save(userToken);
                                             session.getTransaction().commit();
                                             session.close();
+                                            customHandler = new CustomOAuth2AccessTokenResponseAuthenticationSuccessHandler(refreshToken);
+                                        }else{
+                                            customHandler = new CustomOAuth2AccessTokenResponseAuthenticationSuccessHandler();
                                         }
+
                                         //fill the response
-                                        OAuth2AccessTokenResponseAuthenticationSuccessHandler handler = new OAuth2AccessTokenResponseAuthenticationSuccessHandler();
-                                        handler.onAuthenticationSuccess(request, response, authentication);
+                                        customHandler.onAuthenticationSuccess(request, response, authentication);
+
                                     }));
                         }
 
@@ -204,7 +215,7 @@ public class AuthorizationServerConfig {
     public TokenSettings tokenSettings() {
         return TokenSettings.builder()
                 .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED)
-                .accessTokenTimeToLive(Duration.ofDays(1825))//5 years
+                .accessTokenTimeToLive(Duration.ofDays(90))
                 //.refreshTokenTimeToLive(Duration.ofDays(10000))
                 .build();
     }

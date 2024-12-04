@@ -12,7 +12,8 @@ public enum ErrorEnum {
     MAIL_UNABLE_TO_SEND("Unable to send mail",1007),
     USER_EMAIL_ALREADY_EXISTS("A user with email address already exists",1008),
     USER_USERNAME_ALREADY_EXISTS("A user with username already exists",1009),
-    USER_OTHER_PROVIDER_INVALID_TOKEN("Invalid provider token",1010);
+    USER_OTHER_PROVIDER_INVALID_TOKEN("Invalid provider token",1010),
+    AUTH_REFRESH_TOKEN_INVALID("Invalid token",1011);
 
     private String message;
     private Integer code;

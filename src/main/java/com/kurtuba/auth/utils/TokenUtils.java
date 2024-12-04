@@ -6,11 +6,13 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.kurtuba.auth.data.model.AuthProvider;
 import com.kurtuba.auth.data.model.ClientType;
-import com.kurtuba.auth.data.model.JWTClaimsEnum;
 import com.kurtuba.auth.data.model.dto.UserRegistrationDto;
+import com.kurtuba.auth.error.enums.ErrorEnum;
+import com.kurtuba.auth.error.exception.BusinessLogicException;
 import com.nimbusds.jose.shaded.gson.JsonObject;
 import com.nimbusds.jose.shaded.gson.JsonParser;
 import io.jsonwebtoken.Claims;
+
 import io.jsonwebtoken.Jwts;
 import org.jose4j.jwe.JsonWebEncryption;
 import org.jose4j.jwk.PublicJsonWebKey;
@@ -23,6 +25,8 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 @Component
@@ -39,6 +43,7 @@ public class TokenUtils {
 
     /**
      * Generates an access token for login via rest request
+     *
      * @param userId
      * @param clientType
      * @return Access token
@@ -50,19 +55,50 @@ public class TokenUtils {
         }
         // set expiration date to 5 years later
         Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.YEAR,5);
+        cal.add(Calendar.YEAR, 5);
+
         return Jwts.builder()
-                .setHeader(Map.of(JWTClaimsEnum.KID.getDisplayName(),publicJsonWebKey.getKeyId()))
-                .setIssuer(authServerIssuerUrl)
-                .setSubject(userId)
-                .setAudience(clientType.getClientTypeName())
-                .setId(UUID.randomUUID().toString())
-                .setIssuedAt(new Date())
-                .setNotBefore(new Date())
-                .setExpiration(cal.getTime())
-                //.claim("role", "user")
+                .header()
+                .keyId(publicJsonWebKey.getKeyId())
+                .and()
+                .id(UUID.randomUUID().toString())
+                .issuer(authServerIssuerUrl)
+                .subject(userId)
+                .audience()
+                .add(clientType.getClientTypeName())
+                .and()
+                .issuedAt(new Date())
+                .notBefore(new Date())
+                .expiration(cal.getTime())
                 .signWith(publicJsonWebKey.getPrivateKey())
                 .compact();
+    }
+
+    public String generateRefreshToken() {
+        String originalBase64String = Base64.getEncoder().encodeToString(UUID.randomUUID().toString().getBytes());
+        final MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA3-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new BusinessLogicException(ErrorEnum.GENERIC_EXCEPTION.getCode()
+                    , "SHA3-256 algorithm not found. Unable to create refresh token");
+        }
+        final byte[] hashbytes = digest.digest(
+                originalBase64String.getBytes(StandardCharsets.UTF_8));
+        String sha3Hex = bytesToHex(hashbytes);
+        return Base64.getEncoder().encodeToString(sha3Hex.getBytes());
+    }
+
+    private static String bytesToHex(byte[] hash) {
+        StringBuilder hexString = new StringBuilder(2 * hash.length);
+        for (int i = 0; i < hash.length; i++) {
+            String hex = Integer.toHexString(0xff & hash[i]);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 
     /**
@@ -70,11 +106,19 @@ public class TokenUtils {
      * Uses signing keys to verify during decoding
      * Won't work for older signing keys
      * TODO make it work for older JWTs signed by previous keys
+     *
      * @param token
      * @return
      */
-    public Claims getVerifiedTokenClaims(String token){
-        return Jwts.parserBuilder().setSigningKey(publicJsonWebKey.getPrivateKey()).build().parseClaimsJws(token).getBody();
+    public Claims getVerifiedTokenClaims(String token) {
+        if (publicJsonWebKey == null) {
+            //System.out.println("key null!");
+            publicJsonWebKey = decrypJwk();
+        }
+        return (Claims) Jwts.parser()
+                .verifyWith(publicJsonWebKey.getPublicKey())
+                .build()
+                .parse(token).getPayload();
     }
 
     private PublicJsonWebKey decrypJwk() {
