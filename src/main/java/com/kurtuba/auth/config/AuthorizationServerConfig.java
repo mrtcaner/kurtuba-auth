@@ -22,6 +22,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -34,7 +35,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.authorization.OAuth2TokenType;
 import org.springframework.security.oauth2.server.authorization.authentication.OAuth2AccessTokenAuthenticationToken;
-import org.springframework.security.oauth2.server.authorization.client.InMemoryRegisteredClientRepository;
+import org.springframework.security.oauth2.server.authorization.client.JdbcRegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.config.annotation.web.configuration.OAuth2AuthorizationServerConfiguration;
@@ -115,51 +116,6 @@ public class AuthorizationServerConfig {
                 );
 
         return http.build();
-    }
-
-
-    @Bean
-    public RegisteredClientRepository registeredClientRepository() {
-
-        List<RegisteredClient> clientList = new ArrayList<>();
-        RegisteredClient mobileClient = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId("mobile-client")
-                .clientSecret(mobileClientSecret)
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .clientSettings(ClientSettings.builder().requireAuthorizationConsent(false).build())
-                .tokenSettings(tokenSettings())
-                .redirectUri("http://localhost:8080/authorized")
-                .redirectUri("http://localhost:8081/products")
-                .redirectUri("parafusion-callback:/")
-                .redirectUri("https://oauth.pstmn.io/v1/callback")
-                .build();
-        clientList.add(mobileClient);
-
-        RegisteredClient admWebClient = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId("adm-web-client")
-                .clientSecret(admWebClientSecret)
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-                .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
-                .clientSettings(ClientSettings.builder().requireAuthorizationConsent(false).build())
-                .tokenSettings(tokenSettings())
-                .redirectUri("http://localhost:8080/authorized")
-                .redirectUri("http://localhost:8081/products")
-                .redirectUri("parafusion-callback:/")
-                .redirectUri("https://oauth.pstmn.io/v1/callback")
-                .build();
-
-        clientList.add(admWebClient);
-
-        RegisteredClient admServiceClient = RegisteredClient.withId(UUID.randomUUID().toString())
-                .clientId("adm-service-client")
-                .clientSecret(admServiceClientSecret)
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
-                .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                .build();
-        clientList.add(admServiceClient);
-
-        return new InMemoryRegisteredClientRepository(clientList);
     }
 
     @Bean
@@ -345,6 +301,54 @@ public class AuthorizationServerConfig {
     @Bean
     public BearerTokenResolver bearerTokenResolver() {
         return new CustomBearerTokenResolver();
+    }
+
+    @Bean
+    public RegisteredClientRepository registeredClientRepository(JdbcTemplate jdbcTemplate){
+        JdbcRegisteredClientRepository registeredClientRepository = new JdbcRegisteredClientRepository(jdbcTemplate);
+        if (registeredClientRepository.findByClientId("mobile-client") == null){
+            RegisteredClient mobileClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                    .clientId("mobile-client")
+                    .clientSecret(mobileClientSecret)
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                    .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                    .clientSettings(ClientSettings.builder().requireAuthorizationConsent(false).build())
+                    .tokenSettings(tokenSettings())
+                    .redirectUri("http://localhost:8080/authorized")
+                    .redirectUri("http://localhost:8081/products")
+                    .redirectUri("parafusion-callback:/")
+                    .redirectUri("https://oauth.pstmn.io/v1/callback")
+                    .build();
+            registeredClientRepository.save(mobileClient);
+        }
+
+        if (registeredClientRepository.findByClientId("adm-web-client") == null){
+            RegisteredClient admWebClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                    .clientId("adm-web-client")
+                    .clientSecret(admWebClientSecret)
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                    .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                    .clientSettings(ClientSettings.builder().requireAuthorizationConsent(false).build())
+                    .tokenSettings(tokenSettings())
+                    .redirectUri("http://localhost:8080/authorized")
+                    .redirectUri("http://localhost:8081/products")
+                    .redirectUri("parafusion-callback:/")
+                    .redirectUri("https://oauth.pstmn.io/v1/callback")
+                    .build();
+            registeredClientRepository.save(admWebClient);
+        }
+
+        if (registeredClientRepository.findByClientId("adm-service-client") == null){
+            RegisteredClient admServiceClient = RegisteredClient.withId(UUID.randomUUID().toString())
+                    .clientId("adm-service-client")
+                    .clientSecret(admServiceClientSecret)
+                    .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC)
+                    .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
+                    .build();
+            registeredClientRepository.save(admServiceClient);
+        }
+
+        return registeredClientRepository;
     }
 
 
