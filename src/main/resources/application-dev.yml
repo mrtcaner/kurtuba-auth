@@ -71,4 +71,20 @@ kurtuba:
   rsa-jwk:
     key: "FD7pr&.f!my?k#8:"
     file: "rsa-jwk"
+  mobile-client:
+    access-token-validity:
+      minutes: 5
+    refresh-token-validity:
+      minutes: 129600 #90 days
+  web-client:
+    access-token-validity:
+      minutes: 5
+    refresh-token-validity:
+      minutes: 129600 #90 days
+    cookie:
+      max-age:
+        seconds: 7776000 #90 days
+  service-client:
+    access-token-validity:
+      minutes: 1
 
