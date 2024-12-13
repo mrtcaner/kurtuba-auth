@@ -8,6 +8,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Set;
+
 @RestController
 @RequestMapping("auth")
 public class EmailPassLoginController {
@@ -20,7 +22,7 @@ public class EmailPassLoginController {
     public ResponseEntity login(@Valid @RequestBody LoginCredentialsDto loginCredentials) {
         //throws exception if authentication fails
         //no exception means successful authentication. Generate token and return
-        return ResponseEntity.status(HttpStatus.OK).body(userService.generateTokensForLoginByRestRequest(loginCredentials.getEmailUsername(), loginCredentials.getPass(), loginCredentials.getClientType()));
+        return ResponseEntity.status(HttpStatus.OK).body(userService.generateTokensForLoginByRestRequest(loginCredentials.getEmailUsername(), loginCredentials.getPass(), Set.of(loginCredentials.getClientType())));
 
 
     }

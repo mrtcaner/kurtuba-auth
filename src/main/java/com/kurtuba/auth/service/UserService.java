@@ -22,8 +22,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static com.kurtuba.auth.utils.Utils.generateValidationCode;
@@ -148,11 +150,11 @@ public class UserService {
     }
 
     @Transactional
-    public TokensDto generateTokensForLoginByRestRequest(String emailUsername, String pass, ClientType clientType) {
+    public TokensDto generateTokensForLoginByRestRequest(String emailUsername, String pass, Set<ClientType> clientTypes) {
 
         User user = authenticate(emailUsername, pass);
 
-        return userTokenService.createAndSaveTokens(user.getId(), clientType);
+        return userTokenService.createAndSaveTokens(user.getId(), clientTypes, Duration.ofMinutes(5));
     }
 
     @Transactional

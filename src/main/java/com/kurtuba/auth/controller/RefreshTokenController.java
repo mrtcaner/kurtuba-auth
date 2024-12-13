@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/auth")
 public class RefreshTokenController {
 
+    private static final int TOKEN_COOKIE_MAX_AGE_SECONDS = 7776000;
+
     final
     UserTokenService userTokenService;
 

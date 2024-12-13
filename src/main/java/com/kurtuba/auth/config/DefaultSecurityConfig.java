@@ -47,6 +47,15 @@ public class DefaultSecurityConfig {
 
     @Bean
     @Order(2)
+    public SecurityFilterChain publicEndpointsFilterChain(HttpSecurity http) throws Exception {
+        http .securityMatcher("/public/auth/web/token/refresh")
+                .authorizeHttpRequests((authorize) -> authorize.anyRequest().permitAll())
+                .csrf(csrfConf -> csrfConf.disable());
+        return http.build();
+    }
+
+    @Bean
+    @Order(1)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http)
             throws Exception {
         http.sessionManagement(conf->conf.maximumSessions(1))
@@ -57,7 +66,7 @@ public class DefaultSecurityConfig {
                         .anyRequest()
                         .authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))//will require token for certain endpoints
-                //.csrf(AbstractHttpConfigurer::disable)
+                .csrf(csrfConf -> csrfConf.disable())
                 // Form login handles the redirect to the login page from the
                 // authorization server filter chain
                 .formLogin(Customizer.withDefaults());
