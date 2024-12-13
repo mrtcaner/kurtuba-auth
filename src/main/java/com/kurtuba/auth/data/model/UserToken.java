@@ -26,13 +26,16 @@ public class UserToken {
     @NotEmpty
     private String userId;
 
+    @NotEmpty
     private String refreshToken;
 
+    @NotNull
     private LocalDateTime refreshTokenExp;
 
     @NotEmpty
     private String jti;
 
+    @NotEmpty
     private String clientId;
 
     private boolean blocked;
@@ -40,6 +43,7 @@ public class UserToken {
     @NotNull
     private LocalDateTime createdDate;
 
+    @NotNull
     private LocalDateTime expirationDate;
 
 

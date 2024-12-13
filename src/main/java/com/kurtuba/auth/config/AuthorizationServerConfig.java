@@ -66,6 +66,10 @@ import java.util.UUID;
 @Configuration
 public class AuthorizationServerConfig {
 
+    private static final int MOBILE_ACCESS_TOKEN_VALIDITY_MINUTES = 5;
+    private static final int WEB_CLIENT_ACCESS_TOKEN_VALIDITY_MINUTES = 3;
+    private static final int SERVICE_CLIENT_ACCESS_TOKEN_VALIDITY_MINUTES = 1;
+
     @Value("classpath:rsa-jwk")
     Resource rsaJwkFile;
     @Value("${kurtuba.rsa-jwk.key}")
@@ -92,7 +96,7 @@ public class AuthorizationServerConfig {
     }
 
     @Bean
-    @Order(1)
+    @Order(0)
     public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http)
             throws Exception {
 
@@ -138,7 +142,7 @@ public class AuthorizationServerConfig {
     public TokenSettings tokenSettings() {
         return TokenSettings.builder()
                 .accessTokenFormat(OAuth2TokenFormat.SELF_CONTAINED)
-                .accessTokenTimeToLive(Duration.ofDays(90))
+                .accessTokenTimeToLive(Duration.ofMinutes(MOBILE_ACCESS_TOKEN_VALIDITY_MINUTES))
                 //.refreshTokenTimeToLive(Duration.ofDays(10000))
                 .build();
     }
@@ -181,7 +185,7 @@ public class AuthorizationServerConfig {
             if (context.getAuthorizationGrantType().equals(AuthorizationGrantType.CLIENT_CREDENTIALS)) {
                 //a service is asking for an access token to call another service
                 // make it a short-lived token
-                context.getClaims().claim(JWTClaimsEnum.EXP.getDisplayName(), Instant.now().plus(Duration.ofMinutes(1)));
+                context.getClaims().claim(JWTClaimsEnum.EXP.getDisplayName(), Instant.now().plus(Duration.ofMinutes(SERVICE_CLIENT_ACCESS_TOKEN_VALIDITY_MINUTES)));
                 context.getClaims().claim(JWTClaimsEnum.SCOPE.getDisplayName(), "SERVICE");
             } else {
                 //a user is logging in. replace username/email with userId
@@ -193,9 +197,9 @@ public class AuthorizationServerConfig {
                 context.getClaims().claim(JWTClaimsEnum.SUB.getDisplayName(), user.getId());
 
                 if (roles.contains(AuthoritiesEnum.ADMIN.name()) && context.getRegisteredClient().getClientName()
-                        .equals("adm-web-client")) {
+                        .equals(ClientType.ADM_WEB_CLIENT.getClientTypeName())) {
                     //if user has admin role and asks for a token for the web client then make his token short-lived
-                    context.getClaims().claim(JWTClaimsEnum.EXP.getDisplayName(), Instant.now().plus(Duration.ofMinutes(3)));
+                    context.getClaims().claim(JWTClaimsEnum.EXP.getDisplayName(), Instant.now().plus(Duration.ofMinutes(WEB_CLIENT_ACCESS_TOKEN_VALIDITY_MINUTES)));
                     context.getClaims().claim(JWTClaimsEnum.SCOPE.getDisplayName(), roles);
                 }
             }
@@ -218,7 +222,7 @@ public class AuthorizationServerConfig {
                 if (context.getAuthorizationGrantType().equals(AuthorizationGrantType.CLIENT_CREDENTIALS)) {
                     //a service is asking for an access token to call another service
                     // make it a short-lived token
-                    context.getClaims().claim(JWTClaimsEnum.EXP.getDisplayName(), Instant.now().plus(Duration.ofMinutes(1)));
+                    context.getClaims().claim(JWTClaimsEnum.EXP.getDisplayName(), Instant.now().plus(Duration.ofMinutes(SERVICE_CLIENT_ACCESS_TOKEN_VALIDITY_MINUTES)));
                     context.getClaims().claim(JWTClaimsEnum.SCOPE.getDisplayName(), AuthoritiesEnum.SERVICE.name());
 
                 } else {
@@ -229,9 +233,9 @@ public class AuthorizationServerConfig {
                     context.getClaims().claim(JWTClaimsEnum.SUB.getDisplayName(), user.getId());
 
                     if (roles.contains(AuthoritiesEnum.ADMIN.name()) && context.getRegisteredClient().getClientId()
-                            .equals("adm-web-client")) {
+                            .equals(ClientType.ADM_WEB_CLIENT.getClientTypeName())) {
                         //if user has admin role and asks for a token for the web client then make his token short-lived
-                        context.getClaims().claim(JWTClaimsEnum.EXP.getDisplayName(), Instant.now().plus(Duration.ofMinutes(3)));
+                        context.getClaims().claim(JWTClaimsEnum.EXP.getDisplayName(), Instant.now().plus(Duration.ofMinutes(WEB_CLIENT_ACCESS_TOKEN_VALIDITY_MINUTES)));
                         context.getClaims().claim(JWTClaimsEnum.SCOPE.getDisplayName(), roles);
                     }
 
@@ -298,7 +302,7 @@ public class AuthorizationServerConfig {
 
             // web-clients get only accessToken in the httpOnly cookie
             // a refresh token is also created but not handed to web-client
-            if (tokenObj.get(JWTClaimsEnum.AUD.getDisplayName()).getAsString().contains("adm-web-client")) {
+            if (tokenObj.get(JWTClaimsEnum.AUD.getDisplayName()).getAsString().contains(ClientType.ADM_WEB_CLIENT.getClientTypeName())) {
                 new CustomWebClientOAuth2AccessTokenResponseAuthenticationSuccessHandler()
                         .onAuthenticationSuccess(request, response, authentication);
             } else {

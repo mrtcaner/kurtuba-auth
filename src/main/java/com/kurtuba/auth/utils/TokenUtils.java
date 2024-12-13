@@ -27,7 +27,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.temporal.TemporalAmount;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Component
 public class TokenUtils {
@@ -45,17 +49,15 @@ public class TokenUtils {
      * Generates an access token for login via rest request
      *
      * @param userId
-     * @param clientType
+     * @param clientTypes
+     * @param duration
      * @return Access token
      */
-    public String generateToken(String userId, ClientType clientType) {
+    public String generateToken(String userId, Set<ClientType> clientTypes, TemporalAmount duration) {
         if (publicJsonWebKey == null) {
             //System.out.println("key null!");
             publicJsonWebKey = decrypJwk();
         }
-        // set expiration date to 5 years later
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.YEAR, 5);
 
         return Jwts.builder()
                 .header()
@@ -65,11 +67,11 @@ public class TokenUtils {
                 .issuer(authServerIssuerUrl)
                 .subject(userId)
                 .audience()
-                .add(clientType.getClientTypeName())
+                .add(clientTypes.stream().map(e->e.getClientTypeName()).collect(Collectors.toSet()))
                 .and()
                 .issuedAt(new Date())
                 .notBefore(new Date())
-                .expiration(cal.getTime())
+                .expiration(Date.from(LocalDateTime.now().plus(duration).atZone(ZoneId.systemDefault()).toInstant()))
                 .signWith(publicJsonWebKey.getPrivateKey())
                 .compact();
     }
@@ -110,12 +112,14 @@ public class TokenUtils {
      * @param token
      * @return
      */
-    public Claims getVerifiedTokenClaims(String token) {
+    public Claims getVerifiedTokenClaims(String token, long clockSkew) {
         if (publicJsonWebKey == null) {
             //System.out.println("key null!");
             publicJsonWebKey = decrypJwk();
         }
+
         return (Claims) Jwts.parser()
+                .clockSkewSeconds(clockSkew)
                 .verifyWith(publicJsonWebKey.getPublicKey())
                 .build()
                 .parse(token).getPayload();

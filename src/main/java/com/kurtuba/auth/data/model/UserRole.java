@@ -18,7 +18,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "user_role")
-@JsonDeserialize
 public class UserRole implements Serializable {
 
     private static final long serialVersionUID = 1L;
