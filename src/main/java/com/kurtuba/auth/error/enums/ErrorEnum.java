@@ -16,7 +16,10 @@ public enum ErrorEnum {
     AUTH_REFRESH_TOKEN_INVALID("Invalid token",1011),
     USER_INVALID_STATE("Invalid user state",1012),
     USER_PASSWORD_CHANGE_WRONG_PASSWORD("Old password wrong",1013),
-    USER_PASSWORD_CHANGE_NEW_PASSWORD_MISMATCH("New passwords don't match",1014);
+    USER_PASSWORD_CHANGE_NEW_PASSWORD_MISMATCH("New passwords don't match",1014),
+    USER_PASSWORD_RESET_CODE_INVALID("Password reset code invalid",1015),
+    USER_PASSWORD_RESET_CODE_EXPIRED("Password reset code expired",1016),
+    USER_PASSWORD_RESET_EMAIL_NOT_VALIDATED("User email is not validated",1017);
 
     private String message;
     private Integer code;

@@ -40,6 +40,8 @@ public class UserService {
     private int webClientAccessTokenValidityMinutes;
     @Value("${kurtuba.web-client.refresh-token-validity.minutes}")
     private int webClientRefreshTokenValidityMinutes;
+    @Value("${kurtuba.password-reset.code.validity.minutes}")
+    private int passwordResetCodeValidityMinutes;
 
     private final UserRepository userRepository;
 
@@ -361,5 +363,52 @@ public class UserService {
 
         user.setPassword(new BCryptPasswordEncoder().encode(passwordChangeDto.getNewPassword()));
         userRepository.save(user);
+    }
+
+    @Transactional
+    public void resetPassword(@Valid PasswordResetDto passwordResetDto) {
+        User user = userRepository.getUserByEmailOrUsername(passwordResetDto.getUsernameEmail());
+        if(user == null){
+            throw new UsernameNotFoundException("Invalid user");
+        }
+
+        if(user.getPasswordResetCode() == null){
+            throw new BusinessLogicException(ErrorEnum.USER_INVALID_STATE);
+        }
+
+        if(user.getPasswordResetCodeExpirationDate().isBefore(LocalDateTime.now())){
+            throw new BusinessLogicException(ErrorEnum.USER_PASSWORD_RESET_CODE_EXPIRED);
+        }
+
+        if(!user.getPasswordResetCode().equals(passwordResetDto.getCode())){
+            throw new BusinessLogicException(ErrorEnum.USER_PASSWORD_RESET_CODE_INVALID);
+        }
+
+        if(!passwordResetDto.getNewPassword().equals(passwordResetDto.getRepeatNewPassword())){
+            throw new BusinessLogicException(ErrorEnum.USER_PASSWORD_CHANGE_NEW_PASSWORD_MISMATCH);
+        }
+
+        user.setPassword(new BCryptPasswordEncoder().encode(passwordResetDto.getNewPassword()));
+        user.setPasswordResetCode(null);
+        user.setPasswordResetCodeExpirationDate(null);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void requestResetPassword(@NotEmpty String usernameEmail) {
+        User user = userRepository.getUserByEmailOrUsername(usernameEmail);
+        if(user == null){
+            throw new UsernameNotFoundException("Invalid user");
+        }
+
+        if(!user.isEmailValidated()){
+            throw new BusinessLogicException(ErrorEnum.USER_PASSWORD_RESET_EMAIL_NOT_VALIDATED);
+        }
+
+        //todo check user state for locked/active etc?
+        user.setPasswordResetCode(Utils.generateValidationCode());
+        user.setPasswordResetCodeExpirationDate(LocalDateTime.now().plusMinutes(passwordResetCodeValidityMinutes));
+        userRepository.save(user);
+        emailService.sendPasswordResetCodeMail(user.getEmail(),user.getPasswordResetCode());
     }
 }

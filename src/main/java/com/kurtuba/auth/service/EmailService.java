@@ -10,7 +10,9 @@ public interface EmailService {
 
     String sendSimpleMail(EmailDetails details);
 
+    String sendMailWithAttachment(EmailDetails details);
+
     void sendValidationCodeMail(@NotEmpty String recipient, @NotEmpty String verificationCode);
 
-    String sendMailWithAttachment(EmailDetails details);
+    void sendPasswordResetCodeMail(@NotEmpty String recipient, @NotEmpty String resetCode);
 }

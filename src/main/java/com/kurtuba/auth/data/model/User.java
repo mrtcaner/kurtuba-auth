@@ -59,14 +59,15 @@ public class User implements Serializable {
     @JsonIgnore
     private List<UserRole> userRoles;
 
-    @Column
     String bio;
 
-    @Column
     String profilePic;
 
-    @Column
     String profileCover;
+
+    String passwordResetCode;
+
+    LocalDateTime passwordResetCodeExpirationDate;
 
     boolean canChangeUsername;
 

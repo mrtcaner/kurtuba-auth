@@ -5,6 +5,7 @@ import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.utils.response.ResponseError;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -31,6 +32,11 @@ public class BaseExceptionHandler {
         //In case of RFC 9457 error responses such as 404, 405 etc
         if(ex instanceof ErrorResponse){
             return new ResponseEntity<>(errorDetails, HttpStatus.valueOf(((ErrorResponse) ex).getBody().getStatus()));
+        }
+
+        //In case of Access Denied
+        if(ex instanceof AuthorizationDeniedException){
+            return new ResponseEntity<>(errorDetails, HttpStatus.FORBIDDEN);
         }
 
         // For anything else such as RuntimeException etc

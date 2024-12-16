@@ -37,8 +37,6 @@ public class EmailServiceImpl implements EmailService {
     public void sendValidationCodeMail(@NotEmpty String recipient, @NotEmpty String verificationCode) {
 
         try {
-
-
             MimeMessage message = javaMailSender.createMimeMessage();
             message.setFrom("sender-test@example.com");
             message.setRecipients(MimeMessage.RecipientType.TO, recipient);
@@ -46,9 +44,35 @@ public class EmailServiceImpl implements EmailService {
             message.setSentDate(new Date());
 
             MimeBodyPart messageBodyPart = new MimeBodyPart();
-            File htmlFile = ResourceUtils.getFile("classpath:templates/mail_validation_code.html");
+            File htmlFile = ResourceUtils.getFile("classpath:templates/mailEmailValidationCode.html");
             String htmlFileContent = new String(Files.readAllBytes(htmlFile.toPath()));
             htmlFileContent = htmlFileContent.replace("${validationCode}", verificationCode);
+            messageBodyPart.setContent(htmlFileContent, "text/html");
+
+            MimeMultipart multipart = new MimeMultipart();
+            multipart.addBodyPart(messageBodyPart);
+            message.setContent(multipart);
+            javaMailSender.send(message);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new BusinessLogicException(ErrorEnum.MAIL_UNABLE_TO_SEND);
+        }
+
+    }
+
+    public void sendPasswordResetCodeMail(@NotEmpty String recipient, @NotEmpty String resetCode) {
+
+        try {
+            MimeMessage message = javaMailSender.createMimeMessage();
+            message.setFrom("sender-test@example.com");
+            message.setRecipients(MimeMessage.RecipientType.TO, recipient);
+            message.setSubject("Kurtuba Password Reset Code");
+            message.setSentDate(new Date());
+
+            MimeBodyPart messageBodyPart = new MimeBodyPart();
+            File htmlFile = ResourceUtils.getFile("classpath:templates/mailPasswordResetCode.html");
+            String htmlFileContent = new String(Files.readAllBytes(htmlFile.toPath()));
+            htmlFileContent = htmlFileContent.replace("${resetCode}", resetCode);
             messageBodyPart.setContent(htmlFileContent, "text/html");
 
             MimeMultipart multipart = new MimeMultipart();
