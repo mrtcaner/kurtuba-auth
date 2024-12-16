@@ -68,6 +68,10 @@ management:
         include: health, info, env
 
 kurtuba:
+  password-reset:
+    code:
+      validity:
+        minutes: 30
   rsa-jwk:
     key: "FD7pr&.f!my?k#8:"
     file: "rsa-jwk"

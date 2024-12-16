@@ -1,9 +1,10 @@
 package com.kurtuba.auth.controller;
 
 
-import com.kurtuba.auth.data.model.JWTClaimsEnum;
 import com.kurtuba.auth.data.model.AuthoritiesEnum;
+import com.kurtuba.auth.data.model.JWTClaimsEnum;
 import com.kurtuba.auth.data.model.dto.PasswordChangeDto;
+import com.kurtuba.auth.data.model.dto.PasswordResetDto;
 import com.kurtuba.auth.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
@@ -55,9 +56,22 @@ public class UserController {
     }
 
     @PutMapping("/password")
-    public ResponseEntity getUserInfo(@Valid @RequestBody PasswordChangeDto passwordChangeDto,Principal principal) {
+    public ResponseEntity changePassword(@Valid @RequestBody PasswordChangeDto passwordChangeDto,Principal principal) {
         userService.changePassword(passwordChangeDto, principal.getName());
 
+        return ResponseEntity.status(HttpStatus.OK_200).body("");
+    }
+
+    @PutMapping("/password/reset")
+    public ResponseEntity resetPassword(@Valid @RequestBody PasswordResetDto passwordResetDto) {
+        userService.resetPassword(passwordResetDto);
+
+        return ResponseEntity.status(HttpStatus.OK_200).body("");
+    }
+
+    @PostMapping("/password/reset/{usernameEmail}")
+    public ResponseEntity requestPasswordReset(@NotEmpty @PathVariable String usernameEmail) {
+        userService.requestResetPassword(usernameEmail);
         return ResponseEntity.status(HttpStatus.OK_200).body("");
     }
 

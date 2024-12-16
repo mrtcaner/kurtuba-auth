@@ -45,22 +45,34 @@ public class DefaultSecurityConfig {
         return new HttpSessionEventPublisher();
     }
 
+    /**
+     * A security filter to allow web clients to be able to call public endpoints with expired tokens
+     * @param http
+     * @return
+     * @throws Exception
+     */
     @Bean
-    @Order(2)
+    @Order(0)
     public SecurityFilterChain publicEndpointsFilterChain(HttpSecurity http) throws Exception {
-        http .securityMatcher("/public/auth/web/token/refresh")
+        http .securityMatcher("/auth/**", "/user/password/reset/**","/actuator/**", "/favicon.ico")
                 .authorizeHttpRequests((authorize) -> authorize.anyRequest().permitAll())
                 .csrf(csrfConf -> csrfConf.disable());
         return http.build();
     }
 
+    /**
+     *
+     * @param http
+     * @return
+     * @throws Exception
+     */
     @Bean
-    @Order(1)
+    @Order(2)
     public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http)
             throws Exception {
         http.sessionManagement(conf->conf.maximumSessions(1))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("login", "/error", "/actuator/**", "/auth/**", "/favicon.ico").permitAll()
+                        .requestMatchers("login", "/error").permitAll()
                         .requestMatchers("/.well-known/openid-configuration").permitAll() //If openid is not enabled,
                         // a call to this end point must return a 4xx. Otherwise, resource servers receive a login page as response and cannot get jwks
                         .anyRequest()

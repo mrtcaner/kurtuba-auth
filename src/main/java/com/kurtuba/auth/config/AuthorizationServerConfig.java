@@ -101,7 +101,7 @@ public class AuthorizationServerConfig {
     }
 
     @Bean
-    @Order(0)
+    @Order(1)
     public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http)
             throws Exception {
 
