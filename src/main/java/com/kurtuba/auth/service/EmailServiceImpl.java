@@ -8,7 +8,6 @@ import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.validation.constraints.NotEmpty;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.mail.SimpleMailMessage;
@@ -27,14 +26,25 @@ import java.util.Date;
 @Validated
 public class EmailServiceImpl implements EmailService {
 
-    @Autowired
-    private JavaMailSender javaMailSender;
+    private final JavaMailSender javaMailSender;
 
     @Value("${spring.mail.username}")
     private String sender;
 
+    @Value("${auth.server.protocol}")
+    private String authServerProtocol;
 
-    public void sendValidationCodeMail(@NotEmpty String recipient, @NotEmpty String verificationCode) {
+    @Value("${auth.server.ip}")
+    private String authServerIp;
+
+    @Value("${auth.server.port}")
+    private String authServerPort;
+
+    public EmailServiceImpl(JavaMailSender javaMailSender) {
+        this.javaMailSender = javaMailSender;
+    }
+
+    public void sendValidationCodeMail(@NotEmpty String recipient, @NotEmpty String validationCode) {
 
         try {
             MimeMessage message = javaMailSender.createMimeMessage();
@@ -46,7 +56,7 @@ public class EmailServiceImpl implements EmailService {
             MimeBodyPart messageBodyPart = new MimeBodyPart();
             File htmlFile = ResourceUtils.getFile("classpath:templates/mailEmailValidationCode.html");
             String htmlFileContent = new String(Files.readAllBytes(htmlFile.toPath()));
-            htmlFileContent = htmlFileContent.replace("${validationCode}", verificationCode);
+            htmlFileContent = htmlFileContent.replace("${validationCode}", validationCode);
             messageBodyPart.setContent(htmlFileContent, "text/html");
 
             MimeMultipart multipart = new MimeMultipart();
@@ -58,6 +68,34 @@ public class EmailServiceImpl implements EmailService {
             throw new BusinessLogicException(ErrorEnum.MAIL_UNABLE_TO_SEND);
         }
 
+    }
+
+    @Override
+    public void sendValidationLinkMail(String recipient, String validationCode) {
+
+        String validationLink = authServerProtocol + authServerIp + ":" + authServerPort +
+                "/auth/register/email/validation/link/" + validationCode;
+        try {
+            MimeMessage message = javaMailSender.createMimeMessage();
+            message.setFrom("sender-test@example.com");
+            message.setRecipients(MimeMessage.RecipientType.TO, recipient);
+            message.setSubject("Kurtuba Validation Code");
+            message.setSentDate(new Date());
+
+            MimeBodyPart messageBodyPart = new MimeBodyPart();
+            File htmlFile = ResourceUtils.getFile("classpath:templates/mailEmailValidationLink.html");
+            String htmlFileContent = new String(Files.readAllBytes(htmlFile.toPath()));
+            htmlFileContent = htmlFileContent.replace("${validationLink}", validationLink);
+            messageBodyPart.setContent(htmlFileContent, "text/html");
+
+            MimeMultipart multipart = new MimeMultipart();
+            multipart.addBodyPart(messageBodyPart);
+            message.setContent(multipart);
+            javaMailSender.send(message);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new BusinessLogicException(ErrorEnum.MAIL_UNABLE_TO_SEND);
+        }
     }
 
     public void sendPasswordResetCodeMail(@NotEmpty String recipient, @NotEmpty String resetCode) {
@@ -84,6 +122,33 @@ public class EmailServiceImpl implements EmailService {
             throw new BusinessLogicException(ErrorEnum.MAIL_UNABLE_TO_SEND);
         }
 
+    }
+
+    @Override
+    public void sendPasswordResetLinkMail(String recipient, String resetCode) {
+        String resetLink = authServerProtocol + authServerIp + ":" + authServerPort +
+                "/auth/register/email/validation/link/" + resetCode;
+        try {
+            MimeMessage message = javaMailSender.createMimeMessage();
+            message.setFrom("sender-test@example.com");
+            message.setRecipients(MimeMessage.RecipientType.TO, recipient);
+            message.setSubject("Kurtuba Password Reset Code");
+            message.setSentDate(new Date());
+
+            MimeBodyPart messageBodyPart = new MimeBodyPart();
+            File htmlFile = ResourceUtils.getFile("classpath:templates/mailPasswordResetLink.html");
+            String htmlFileContent = new String(Files.readAllBytes(htmlFile.toPath()));
+            htmlFileContent = htmlFileContent.replace("${resetLink}", resetLink);
+            messageBodyPart.setContent(htmlFileContent, "text/html");
+
+            MimeMultipart multipart = new MimeMultipart();
+            multipart.addBodyPart(messageBodyPart);
+            message.setContent(multipart);
+            javaMailSender.send(message);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new BusinessLogicException(ErrorEnum.MAIL_UNABLE_TO_SEND);
+        }
     }
 
     // Method 1

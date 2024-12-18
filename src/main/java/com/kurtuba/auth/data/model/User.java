@@ -12,7 +12,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
 import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -65,10 +64,6 @@ public class User implements Serializable {
 
     String profileCover;
 
-    String passwordResetCode;
-
-    LocalDateTime passwordResetCodeExpirationDate;
-
     boolean canChangeUsername;
 
     private boolean activated;
@@ -83,10 +78,9 @@ public class User implements Serializable {
 
     private boolean showCaptcha;
 
-    @Nullable
-    private String emailValidationCode;
-
     private boolean emailValidated;
+
+    private boolean phoneValidated;
 
     @Nullable
     private LocalDateTime lastLoginAttempt;

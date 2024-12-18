@@ -12,6 +12,7 @@ auth:
     mobile-client-secret: $2a$10$8Xr/8v58z91sUKQcD.wmqupNP3azgAm/FFVshnq9xs9irAbHlr7Ea
     adm-web-client-secret: $2a$12$vUM7IpBs2wk/0U21HmF5xeiumBgD8bJaBJ8OOox8TLAXC5erm4/Oq
     adm-service-client-secret: $2a$10$9u/FK6u3hyYv6LfiahN.ceeKhyToICqCvxOcJgH11EzB2YcKInwta
+    protocol: http://
     ip: 192.168.1.2
     port: 8080
     email-password-login-endpoint: http://${auth.server.ip}:${auth.server.port}/login
