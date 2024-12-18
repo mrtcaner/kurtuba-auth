@@ -44,6 +44,8 @@ public class UserRegistrationDto {
     @NotNull
     private AuthProvider authProvider;
 
+    boolean emailValidationByCode;
+
     public User toUser() {
         return User.builder()
                 .name(name)

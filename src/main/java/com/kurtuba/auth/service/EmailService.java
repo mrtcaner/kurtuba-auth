@@ -14,5 +14,9 @@ public interface EmailService {
 
     void sendValidationCodeMail(@NotEmpty String recipient, @NotEmpty String verificationCode);
 
+    void sendValidationLinkMail(@NotEmpty String recipient, @NotEmpty String verificationLink);
+
     void sendPasswordResetCodeMail(@NotEmpty String recipient, @NotEmpty String resetCode);
+
+    void sendPasswordResetLinkMail(@NotEmpty String recipient, @NotEmpty String resetCode);
 }
