@@ -3,6 +3,7 @@ package com.kurtuba.auth.data.model;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -29,7 +30,7 @@ public class UserMetaChange {
     //email address, phone number. In case of password
     private String meta;
 
-    @NotEmpty
+    @NotNull
     @Enumerated(EnumType.STRING)
     private MetaChangeType metaChangeType;
 

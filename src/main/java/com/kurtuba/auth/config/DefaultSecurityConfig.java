@@ -54,7 +54,7 @@ public class DefaultSecurityConfig {
     @Bean
     @Order(0)
     public SecurityFilterChain publicEndpointsFilterChain(HttpSecurity http) throws Exception {
-        http .securityMatcher("/auth/**", "/user/password/reset/**","/actuator/**", "/favicon.ico")
+        http .securityMatcher("/auth/**", "/user/password/reset/**","/actuator/**", "/favicon.ico","/user/forgot-password")
                 .authorizeHttpRequests((authorize) -> authorize.anyRequest().permitAll())
                 .csrf(csrfConf -> csrfConf.disable());
         return http.build();

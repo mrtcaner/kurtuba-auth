@@ -3,16 +3,21 @@ package com.kurtuba.auth.controller;
 
 import com.kurtuba.auth.data.model.AuthoritiesEnum;
 import com.kurtuba.auth.data.model.JWTClaimsEnum;
+import com.kurtuba.auth.data.model.dto.ForgotPasswordDto;
 import com.kurtuba.auth.data.model.dto.PasswordChangeDto;
 import com.kurtuba.auth.data.model.dto.PasswordResetDto;
+import com.kurtuba.auth.error.exception.BusinessLogicException;
 import com.kurtuba.auth.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import org.eclipse.jetty.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 
 import java.security.Principal;
 
@@ -55,31 +60,113 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.OK_200).body(userService.getUserById(principal.getName()));
     }
 
+    /**
+     * Password change endpoint for logged-in users
+     * @param passwordChangeDto
+     * @param principal
+     * @return
+     */
     @PutMapping("/password")
     public ResponseEntity changePassword(@Valid @RequestBody PasswordChangeDto passwordChangeDto,Principal principal) {
         userService.changePassword(passwordChangeDto, principal.getName());
         return ResponseEntity.status(HttpStatus.OK_200).body("");
     }
 
-    //todo must return a page which user can change password
-    @PutMapping("/password/reset/link/{code}")
-    public ResponseEntity resetPasswordByLink(@Valid @PathVariable String code) {
-        //userService.resetPassword(passwordResetDto);
+    /**
+     *  Returns password change page upon receiving a valid password reset code
+     * @param code
+     * @return
+     */
+    @GetMapping("/password/reset/link/{code}")
+    public ModelAndView getPasswordResetPage(@Valid @PathVariable String code) {
+        ModelAndView modelAndView = new ModelAndView();
+        try{
+            userService.validatePasswordResetCode(code);
+            modelAndView.setViewName("passwordReset.html");
+        }catch (BusinessLogicException ex){
+            modelAndView.setViewName("passwordResetFailure.html");
+            modelAndView.addObject("errorMessage", ex.getMessage());
+        }
+        return modelAndView;
+    }
+
+    /**
+     * Receives valid reset code and new password from password change page
+     * @param passwordResetDto
+     * @return
+     */
+    @PutMapping("/password/reset/link")
+    public ResponseEntity resetPasswordByLink(@Valid @RequestBody PasswordResetDto passwordResetDto) {
+        userService.resetPasswordByLink(passwordResetDto);
         return ResponseEntity.status(HttpStatus.OK_200).body("");
     }
 
+    /**
+     * Receives valid reset code, email-address and new password from mobile
+     * @param passwordResetDto
+     * @return
+     */
     @PutMapping("/password/reset/code")
     public ResponseEntity resetPasswordByCode(@Valid @RequestBody PasswordResetDto passwordResetDto) {
         userService.resetPasswordByCode(passwordResetDto);
         return ResponseEntity.status(HttpStatus.OK_200).body("");
     }
 
+    @GetMapping("/forgot-password")
+    public ModelAndView getForgotPasswordPage(){
+        ModelAndView modelAndView = new ModelAndView();
+        modelAndView.addObject("forgotPasswordForm", new ForgotPasswordDto());
+        modelAndView.setViewName("requestPasswordReset.html");
+        return modelAndView;
+    }
+
+    @PostMapping("/forgot-password")
+    public ModelAndView handleForgotPasswordPage(@ModelAttribute("forgotPasswordForm") @Valid ForgotPasswordDto form,
+                                                 BindingResult result){
+        ModelAndView modelAndView = new ModelAndView();
+        if(result.hasErrors()){
+            //in case of malformed email
+            modelAndView.setViewName("requestPasswordReset.html");
+            modelAndView.addObject("forgotPasswordForm", form);
+        }else{
+            // mail well-formed
+            try{
+                userService.requestResetPassword(form.getEmail(), false);
+            }catch (BusinessLogicException | UsernameNotFoundException ex){
+                // mail doesn't exist in the system or user's mail is not validated
+                result.rejectValue("email","1000",ex.getMessage());
+                modelAndView.setViewName("requestPasswordReset.html");
+                modelAndView.addObject("forgotPasswordForm", form);
+                modelAndView.addAllObjects(result.getModel());
+                return modelAndView;
+            }
+            // success!
+            modelAndView.setViewName("requestPasswordResetSuccess.html");
+            modelAndView.addObject("email", form.getEmail());
+        }
+
+        return modelAndView;
+
+
+    }
+
+
+    /**
+     * Sends reset code to user's email-address. User is expected to manually enter the code to a from
+     * @param usernameEmail
+     * @return
+     */
     @PostMapping("/password/reset/code/{usernameEmail}")
     public ResponseEntity requestPasswordResetByCode(@NotEmpty @PathVariable String usernameEmail) {
         userService.requestResetPassword(usernameEmail, true);
         return ResponseEntity.status(HttpStatus.OK_200).body("");
     }
 
+    /**
+     * Send a link to user's email address. Link opens password-reset page
+     * @param usernameEmail
+     * @return
+     */
     @PostMapping("/password/reset/link/{usernameEmail}")
     public ResponseEntity requestPasswordResetByLink(@NotEmpty @PathVariable String usernameEmail) {
         userService.requestResetPassword(usernameEmail, false);
