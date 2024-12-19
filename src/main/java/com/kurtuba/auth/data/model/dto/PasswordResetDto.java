@@ -14,8 +14,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PasswordResetDto {
 
-    @NotEmpty
     String usernameEmail;
+
     @NotEmpty
     String code;
     @NotEmpty
