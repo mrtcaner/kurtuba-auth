@@ -10,17 +10,16 @@ import com.kurtuba.auth.utils.TokenUtils;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import com.nimbusds.jose.shaded.gson.JsonArray;
 import com.nimbusds.jose.shaded.gson.JsonObject;
+import com.nimbusds.jose.shaded.gson.JsonParser;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.jose4j.jwe.JsonWebEncryption;
-import org.jose4j.keys.PbkdfKey;
-import org.jose4j.lang.JoseException;
+import org.jose4j.jwk.JsonWebKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -53,7 +52,6 @@ import org.springframework.security.web.authentication.LoginUrlAuthenticationEnt
 import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.time.Duration;
 import java.time.Instant;
@@ -66,10 +64,6 @@ import java.util.UUID;
 @Configuration
 public class AuthorizationServerConfig {
 
-    @Value("classpath:rsa-jwk")
-    Resource rsaJwkFile;
-    @Value("${kurtuba.rsa-jwk.key}")
-    private String rsaJwkKey;
     @Value("${auth.server.issuer-url}")
     private String authServerIssuerUrl;
     @Value("${auth.server.mobile-client-secret}")
@@ -254,20 +248,18 @@ public class AuthorizationServerConfig {
         };
     }
 
-
     @Bean
     public JWKSource<SecurityContext> jwkSource() {
         try {
-            String jwkEncrypted = rsaJwkFile.getContentAsString(StandardCharsets.UTF_8);
-            JsonWebEncryption decryptingJwe = new JsonWebEncryption();
-            decryptingJwe.setCompactSerialization(jwkEncrypted);
-            decryptingJwe.setKey(new PbkdfKey(rsaJwkKey));
-            String payload = decryptingJwe.getPayload();
-            //PublicJsonWebKey publicJsonWebKey = PublicJsonWebKey.Factory.newPublicJwk(payload);
-            // share the public part with whomever/whatever needs to verify the signatures
-            JWKSet jwkSet = JWKSet.parse("{\"keys\":[" + payload + "]}");
+            JsonObject keysObj = new JsonObject();
+            JsonArray keysArray = new JsonArray();
+            tokenUtils.decryptJwk().stream().forEach(key -> {
+                keysArray.add(JsonParser.parseString(key.toJson(JsonWebKey.OutputControlLevel.INCLUDE_PRIVATE)));
+            });
+            keysObj.add("keys", keysArray);
+            JWKSet jwkSet = JWKSet.parse(keysObj.toString());
             return (jwkSelector, securityContext) -> jwkSelector.select(jwkSet);
-        } catch (IOException | JoseException | ParseException e) {
+        } catch (ParseException e) {
             throw new RuntimeException(e);
         }
     }
@@ -380,37 +372,4 @@ public class AuthorizationServerConfig {
 
         return registeredClientRepository;
     }
-
-
-    /*@Bean
-    public JWKSource<SecurityContext> jwkSource() {
-        RSAKey rsaKey = generateRsa();
-        JWKSet jwkSet = new JWKSet(rsaKey);
-
-        return (jwkSelector, securityContext) -> jwkSelector.select(jwkSet);
-    }*/
-
-    /*private static RSAKey generateRsa() {
-        KeyPair keyPair = generateRsaKey();
-        RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
-        RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
-        return new RSAKey.Builder(publicKey)
-                .privateKey(privateKey)
-                .keyID(UUID.randomUUID().toString())
-                .build();
-    }
-
-    private static KeyPair generateRsaKey() {
-        KeyPair keyPair;
-        try {
-            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-            keyPairGenerator.initialize(2048);
-            keyPair = keyPairGenerator.generateKeyPair();
-        } catch (Exception ex) {
-            throw new IllegalStateException(ex);
-        }
-        return keyPair;
-    }*/
-
-
 }
