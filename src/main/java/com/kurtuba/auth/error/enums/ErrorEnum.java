@@ -14,13 +14,14 @@ public enum ErrorEnum {
     USER_EMAIL_ALREADY_EXISTS("A user with email address already exists",1009),
     USER_USERNAME_ALREADY_EXISTS("A user with username already exists",1010),
     USER_OTHER_PROVIDER_INVALID_TOKEN("Invalid provider token",1011),
-    AUTH_REFRESH_TOKEN_INVALID("Invalid token",1012),
+    AUTH_REFRESH_TOKEN_INVALID("Invalid refresh token",1012),
     USER_INVALID_STATE("Invalid user state",1013),
     USER_PASSWORD_CHANGE_WRONG_PASSWORD("Old password wrong",1014),
     USER_PASSWORD_CHANGE_NEW_PASSWORD_MISMATCH("New passwords don't match",1015),
     USER_PASSWORD_RESET_CODE_INVALID("Password reset code invalid",1016),
     USER_PASSWORD_RESET_CODE_EXPIRED("Password reset code expired",1017),
-    USER_PASSWORD_RESET_EMAIL_NOT_VALIDATED("User email is not validated",1018);
+    USER_PASSWORD_RESET_EMAIL_NOT_VALIDATED("User email is not validated",1018),
+    AUTH_INVALID_TOKEN("Invalid token",1019);
 
 
     private String message;
