@@ -81,8 +81,12 @@ public class AuthorizationServerConfig {
 
     @Value("${kurtuba.mobile-client.access-token-validity.minutes}")
     private int mobileClientAccessTokenValidityMinutes;
+    @Value("${kurtuba.mobile-client.refresh-token-validity.minutes}")
+    private int mobileClientRefreshTokenValidityMinutes;
     @Value("${kurtuba.web-client.access-token-validity.minutes}")
     private int webClientAccessTokenValidityMinutes;
+    @Value("${kurtuba.mobile-client.refresh-token-validity.minutes}")
+    private int webClientRefreshTokenValidityMinutes;
     @Value("${kurtuba.service-client.access-token-validity.minutes}")
     private int serviceClientAccessTokenValidityMinutes;
     @Value("${kurtuba.web-client.cookie.max-age.seconds}")
@@ -291,7 +295,8 @@ public class AuthorizationServerConfig {
             instant = Instant.ofEpochSecond(Long.parseLong(tokenObj.get(JWTClaimsEnum.IAT.getDisplayName()).getAsString()));
             LocalDateTime issuedAt = instant.atZone(zoneId).toLocalDateTime();
             //System.out.println("instant2:" + instant);
-
+            int refreshTokenValidityDuration = tokenObj.get(JWTClaimsEnum.AUD.getDisplayName()).getAsString()
+                    .contains("web-client") ? webClientRefreshTokenValidityMinutes : mobileClientRefreshTokenValidityMinutes;
             String refreshToken = tokenUtils.generateRefreshToken();
             UserToken userToken = UserToken.builder()
                     .userId(tokenObj.get(JWTClaimsEnum.SUB.getDisplayName()).getAsString())
@@ -299,7 +304,7 @@ public class AuthorizationServerConfig {
                     .jti(tokenObj.get(JWTClaimsEnum.JTI.getDisplayName()).getAsString())
                     .expirationDate(expirationDate)
                     .refreshToken(new BCryptPasswordEncoder().encode(new String(Base64.getDecoder().decode(refreshToken))))
-                    .refreshTokenExp(LocalDateTime.now().plusMonths(3))//todo to properties file
+                    .refreshTokenExp(LocalDateTime.now().plusMinutes(refreshTokenValidityDuration))
                     .createdDate(issuedAt)
                     .build();
 
