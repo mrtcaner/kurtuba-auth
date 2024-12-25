@@ -48,7 +48,7 @@ public class CustomBearerTokenResolver implements BearerTokenResolver {
 		// token is not in header. check the cookie
 		return request.getCookies() == null ? null : Arrays
 				.stream(request.getCookies())
-				.filter(cookie -> cookie.getName().equals("jwt") && cookie.isHttpOnly())// todo check also domain, secure properties
+				.filter(cookie -> cookie.getName().equals("jwt"))
 				.map(cookie -> cookie.getValue())
 				.findFirst()
 				.orElse(null);
