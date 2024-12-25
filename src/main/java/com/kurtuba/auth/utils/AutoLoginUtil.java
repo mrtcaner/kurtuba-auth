@@ -67,8 +67,7 @@ public class AutoLoginUtil {
                 .get()
                 .uri(OAUTH2_URI)
                 .header(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE)
-                .exchange()
-                .flatMap(clientResponse -> {
+                .exchangeToMono(clientResponse -> {
                     //this must be a redirect to login
                     //Lets see if there is a cookie
                     System.out.println("redirect to login cookie:" + clientResponse.cookies().get("JSESSIONID"));
@@ -87,7 +86,7 @@ public class AutoLoginUtil {
         client.get().uri(redirectUrl.toString())
                 .header(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE)
                 .cookies(cookies -> cookies.addAll(tempCookies))
-                .exchange().flatMap(clientResponse1 -> {
+                .exchangeToMono(clientResponse1 -> {
                     //must be login page, lets login!
                     System.out.println("get login cookie:" + clientResponse1.cookies().get("JSESSIONID"));
                     for (CharSequence key: clientResponse1.cookies().keySet()) {
@@ -103,8 +102,7 @@ public class AutoLoginUtil {
                 .cookies(cookies -> cookies.addAll(tempCookies))
                 .body(BodyInserters.fromFormData("username", email)
                         .with("password", pass))
-                .exchange()
-                .flatMap(clientResponse2 -> {
+                .exchangeToMono(clientResponse2 -> {
                     //another redirect to "uri"&continue!? Let's get the url and see!
                     System.out.println("post login cookie:" + clientResponse2.cookies().get("JSESSIONID"));
                     for (CharSequence key: clientResponse2.cookies().keySet()) {
@@ -125,8 +123,7 @@ public class AutoLoginUtil {
         client.get().uri(redirectUrl.toString())
                 .header(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE)
                 .cookies(cookies -> cookies.addAll(tempCookies))
-                .exchange()
-                .flatMap(clientResponse3 -> {
+                .exchangeToMono(clientResponse3 -> {
                     System.out.println("get continue cookie:" + clientResponse3.cookies().get("JSESSIONID"));
                     //this must be another redirect. This time a url with code=<auth-code> url param
                     if(clientResponse3.statusCode().is3xxRedirection()){
@@ -160,8 +157,7 @@ public class AutoLoginUtil {
                 .header(HttpHeaders.AUTHORIZATION, basicAuth)
                 .cookies(cookies -> cookies.addAll(tempCookies))
                 .body(BodyInserters.fromFormData(bodyValues))
-                .exchange()
-                .flatMap(clientResponse4 -> {
+                .exchangeToMono(clientResponse4 -> {
                     //another redirect to "uri"&continue!? Let's get the url and see!
                     System.out.println("post login cookie:" + clientResponse4.cookies().get("JSESSIONID"));
                     for (CharSequence key: clientResponse4.cookies().keySet()) {
