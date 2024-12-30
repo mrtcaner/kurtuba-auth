@@ -107,7 +107,7 @@ public class EmailServiceImpl implements EmailService {
             message.setSentDate(new Date());
 
             MimeBodyPart messageBodyPart = new MimeBodyPart();
-            File htmlFile = ResourceUtils.getFile("classpath:templates/mailEmailValidationLink.html");
+            File htmlFile = ResourceUtils.getFile("classpath:templates/mailEmailValidation.html");
             String htmlFileContent = new String(Files.readAllBytes(htmlFile.toPath()));
             htmlFileContent = htmlFileContent.replace("${title}", validationMailDto.getTitle());
             htmlFileContent = htmlFileContent.replace("${greet}", validationMailDto.getGreet());
