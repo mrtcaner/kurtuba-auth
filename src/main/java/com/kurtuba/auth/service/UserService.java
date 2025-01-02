@@ -216,7 +216,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserDto register(@Valid UserRegistrationDto newUser) {
+    public String register(@Valid UserRegistrationDto newUser) {
         if (userRepository.getUserByEmail(newUser.getEmail()) != null) {
             throw new BusinessLogicException(ErrorEnum.USER_EMAIL_ALREADY_EXISTS);
         }
@@ -247,7 +247,7 @@ public class UserService {
                         Base64.getEncoder().encodeToString(UUID.randomUUID().toString().getBytes()) : null)
                 .build();
 
-        userMetaChangeService.save(metaChange);
+        userMetaChangeService.create(metaChange);
         user.setUserRoles(List.of(
                 UserRole.builder()
                         .userId(user.getId())
@@ -262,7 +262,7 @@ public class UserService {
             emailJobService.sendRegistrationValidationLinkMail(user.getEmail(), metaChange.getCode());
         }
 
-        return UserDto.fromUser(user);
+        return metaChange.getId();
     }
 
 
@@ -293,6 +293,10 @@ public class UserService {
                         new BusinessLogicException(ErrorEnum.USER_EMAIL_VALIDATION_CODE_INVALID));
         User user = userRepository.getUserById(userMetaChange.getUserId());
 
+        if (userMetaChange.getMaxTryCount() != null && userMetaChange.getTryCount() >= userMetaChange.getMaxTryCount()){
+            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_VALIDATE_CODE_EXPIRED);
+        }
+
         if (!userMetaChange.getCode().equals(code)) {
             throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_CODE_MISMATCH);
         }
@@ -307,6 +311,10 @@ public class UserService {
 
         if (userMetaChange.isExecuted()) {
             throw new BusinessLogicException(ErrorEnum.USER_EMAIL_VALIDATION_STATUS_INVALID);
+        }
+
+        if (userMetaChange.getMaxTryCount() != null && userMetaChange.getTryCount() >= userMetaChange.getMaxTryCount()){
+            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_VALIDATE_CODE_EXPIRED);
         }
 
         if (userMetaChange.getExpirationDate().isBefore(LocalDateTime.now())) {
@@ -327,7 +335,7 @@ public class UserService {
         userRepository.save(user);
         userMetaChange.setExecuted(true);
         userMetaChange.setUpdatedDate(LocalDateTime.now());
-        userMetaChangeService.save(userMetaChange);
+        userMetaChangeService.create(userMetaChange);
 
         return UserDto.fromUser(user);
     }
@@ -357,7 +365,7 @@ public class UserService {
                 .linkParam(!byCode ?
                         Base64.getEncoder().encodeToString(UUID.randomUUID().toString().getBytes()) : null)
                 .build();
-        userMetaChangeService.save(metaChange);
+        userMetaChangeService.create(metaChange);
         if (byCode) {
             emailJobService.sendRegistrationValidationCodeMail(user.getEmail(), metaChange.getCode());
         } else {
@@ -489,7 +497,7 @@ public class UserService {
         }
         user.setPassword(new BCryptPasswordEncoder().encode(passwordChangeDto.getNewPassword()));
         userRepository.save(user);
-        userMetaChangeService.save(UserMetaChange.builder()
+        userMetaChangeService.create(UserMetaChange.builder()
                 .metaChangeType(MetaChangeType.PASSWORD_CHANGE)
                 .userId(user.getId())
                 .createdDate(LocalDateTime.now())
@@ -532,7 +540,7 @@ public class UserService {
         userRepository.save(user);
         userMetaChange.setExecuted(true);
         userMetaChange.setUpdatedDate(LocalDateTime.now());
-        userMetaChangeService.save(userMetaChange);
+        userMetaChangeService.create(userMetaChange);
         emailJobService.sendUserMetaChangeNotificationMail(user.getEmail(), MetaChangeType.PASSWORD_RESET);
     }
 
@@ -588,7 +596,7 @@ public class UserService {
         if (!user.isActivated()) {
             throw new BusinessLogicException(ErrorEnum.USER_INVALID_STATE);
         }
-        userMetaChangeService.save(metaChange);
+        userMetaChangeService.create(metaChange);
         if (byCode == true) {
             emailJobService.sendPasswordResetCodeMail(user.getEmail(), metaChange.getCode());
         } else {
@@ -604,6 +612,10 @@ public class UserService {
             throw new BusinessLogicException(ErrorEnum.USER_PASSWORD_RESET_CODE_INVALID);
         }
 
+        if (userMetaChange.getMaxTryCount() != null && userMetaChange.getTryCount() >= userMetaChange.getMaxTryCount()) {
+            throw new BusinessLogicException(ErrorEnum.USER_PASSWORD_RESET_CODE_EXPIRED);
+        }
+
         if (!userMetaChange.getMetaChangeType().equals(MetaChangeType.PASSWORD_RESET)) {
             throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION);
         }
@@ -613,10 +625,6 @@ public class UserService {
         }
 
         if (userMetaChange.getExpirationDate().isBefore(LocalDateTime.now())) {
-            throw new BusinessLogicException(ErrorEnum.USER_PASSWORD_RESET_CODE_EXPIRED);
-        }
-
-        if (userMetaChange.getMaxTryCount() != null && userMetaChange.getTryCount() >= userMetaChange.getMaxTryCount()) {
             throw new BusinessLogicException(ErrorEnum.USER_PASSWORD_RESET_CODE_EXPIRED);
         }
     }
@@ -633,6 +641,10 @@ public class UserService {
 
         if (user == null) {
             throw new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST);
+        }
+
+        if(userRepository.getUserByEmail(email) != null){
+            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_ALREADY_EXISTS);
         }
 
         // user must be in a valid state
@@ -653,7 +665,7 @@ public class UserService {
                 .linkParam(!byCode ?
                         Base64.getEncoder().encodeToString(UUID.randomUUID().toString().getBytes()) : null)
                 .build();
-        userMetaChangeService.save(metaChange);
+        userMetaChangeService.create(metaChange);
 
         if (byCode) {
             emailJobService.sendUserEmailChangeCodeMail(email, metaChange.getCode());
@@ -683,6 +695,6 @@ public class UserService {
     public void updateUserMetaChangeTryCount(UserMetaChange userMetaChange) {
         userMetaChange.setTryCount(userMetaChange.getTryCount() + 1);
         userMetaChange.setUpdatedDate(LocalDateTime.now());
-        userMetaChangeService.save(userMetaChange);
+        userMetaChangeService.update(userMetaChange);
     }
 }
