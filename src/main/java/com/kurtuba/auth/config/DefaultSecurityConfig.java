@@ -102,8 +102,8 @@ public class DefaultSecurityConfig {
         try {
             JsonObject keysObj = new JsonObject();
             JsonArray keysArray = new JsonArray();
-            tokenUtils.decryptJwk().stream().forEach(key -> {
-                keysArray.add(JsonParser.parseString(key.toJson(JsonWebKey.OutputControlLevel.INCLUDE_PRIVATE)));
+            tokenUtils.getAllSigningKeys().stream().forEach(key -> {
+                keysArray.add(JsonParser.parseString(key.toJson(JsonWebKey.OutputControlLevel.PUBLIC_ONLY)));
             });
             keysObj.add("keys", keysArray);
             return JWKSet.parse(keysObj.toString());

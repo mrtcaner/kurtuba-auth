@@ -54,6 +54,10 @@ public class TokenUtils {
         currentPublicJsonWebKey = allSigningKeys.get(0);
     }
 
+    public List<PublicJsonWebKey> getAllSigningKeys(){
+        return allSigningKeys;
+    }
+
     /**
      * Generates an access token for login via rest request
      *
@@ -125,7 +129,7 @@ public class TokenUtils {
         String keyId = decodeTokenHeader(token).getAsJsonObject().get("kid").getAsString();
 
         // find the key
-        PublicJsonWebKey webKey = decryptJwk().stream().filter(key ->
+        PublicJsonWebKey webKey = allSigningKeys.stream().filter(key ->
                 key.getKeyId().equals(keyId)).findFirst().orElse(null);
 
         if (webKey == null) {
