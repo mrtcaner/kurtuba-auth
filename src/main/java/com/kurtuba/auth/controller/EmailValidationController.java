@@ -15,12 +15,12 @@ import org.springframework.web.servlet.ModelAndView;
 
 @RestController
 @RequestMapping("auth")
-public class EmailController {
+public class EmailValidationController {
 
     final
     UserService userService;
 
-    public EmailController(UserService userService) {
+    public EmailValidationController(UserService userService) {
         this.userService = userService;
     }
 
@@ -61,13 +61,13 @@ public class EmailController {
                 .body("");
     }
 
-    @PutMapping("/email/validation/code/{email}")
+    @PutMapping("/email/registration/validation/code/{email}")
     private ResponseEntity resendRegistrationEmailValidationCode(@NotEmpty @PathVariable String email) {
         userService.sendRegistrationEmailValidationCode(email, true);
         return ResponseEntity.status(HttpStatusCode.valueOf(org.eclipse.jetty.http.HttpStatus.OK_200)).body("success");
     }
 
-    @PutMapping("/email/validation/link/{email}")
+    @PutMapping("/email/registration/validation/link/{email}")
     private ResponseEntity resendRegistrationEmailValidationLink(@NotEmpty @PathVariable String email) {
         userService.sendRegistrationEmailValidationCode(email, false);
         return ResponseEntity.status(HttpStatusCode.valueOf(HttpStatus.OK_200)).body("success");

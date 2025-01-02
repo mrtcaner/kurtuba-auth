@@ -76,7 +76,7 @@ public class UserController {
     }
 
     /**
-     * Returns password change page upon receiving a valid password reset code
+     * Returns password change page upon receiving a valid password reset linkParam
      *
      * @param linkParam
      * @return
@@ -101,6 +101,13 @@ public class UserController {
         return modelAndView;
     }
 
+    /**
+     * Handles password-reset page form post and changes password
+     *
+     * @param passwordResetByLinkDto
+     * @param result
+     * @return
+     */
     @PostMapping("/password/reset/password-reset")
     public ModelAndView handleResetPassword(@Valid PasswordResetByLinkDto passwordResetByLinkDto, BindingResult result) {
         ModelAndView modelAndView = new ModelAndView();
@@ -164,6 +171,12 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.OK_200).body("");
     }
 
+    /**
+     * Opens forgot-password page. User is expected to provide an email address to receive code/link to initiate
+     * password reset
+     *
+     * @return
+     */
     @GetMapping("/password/reset/forgot-password")
     public ModelAndView getForgotPasswordPage() {
         ModelAndView modelAndView = new ModelAndView();
@@ -172,6 +185,13 @@ public class UserController {
         return modelAndView;
     }
 
+    /**
+     * Handles forgot-password page form post. Sends code/link to given email address
+     *
+     * @param form
+     * @param result
+     * @return
+     */
     @PostMapping("/password/reset/forgot-password")
     public ModelAndView handleForgotPasswordPage(@ModelAttribute("forgotPasswordForm") @Valid ForgotPasswordDto form,
                                                  BindingResult result) {
@@ -222,7 +242,7 @@ public class UserController {
     }
 
     /**
-     * Send a link to user's email address. Link opens password-reset page
+     * Sends a link to user's email address. Link opens password-reset page
      *
      * @param email
      * @return
@@ -234,7 +254,7 @@ public class UserController {
     }
 
     /**
-     * Email change by validation-Code endpoint for logged-in users
+     * Sends a validation code to given email address for logged-in user
      *
      * @param email
      * @param principal
@@ -253,8 +273,7 @@ public class UserController {
     }
 
     /**
-     * Email change by validation-Link endpoint for logged-in users
-     *
+     * Sends a validation link to given email address for logged-in user
      * @param email
      * @param principal
      * @return

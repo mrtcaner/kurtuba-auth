@@ -17,6 +17,7 @@ public class EmailUtils {
         htmlFileContent = htmlFileContent.replace("${greet}", validationMailDto.getGreet());
         htmlFileContent = htmlFileContent.replace("${msg1}", validationMailDto.getMsg1());
         htmlFileContent = htmlFileContent.replace("${validationLink}", validationMailDto.getValidationLink());
+        htmlFileContent = htmlFileContent.replace("${validationCode}", validationMailDto.getValidationCode());
         htmlFileContent = htmlFileContent.replace("${displayCode}", validationMailDto.getDisplayCode());
         htmlFileContent = htmlFileContent.replace("${displayLink}", validationMailDto.getDisplayLink());
         htmlFileContent = htmlFileContent.replace("${msg2}", validationMailDto.getMsg2());

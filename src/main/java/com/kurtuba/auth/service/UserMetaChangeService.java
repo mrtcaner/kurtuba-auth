@@ -18,11 +18,16 @@ public class UserMetaChangeService {
     }
 
     @Transactional
-    public void save(UserMetaChange userMetaChange){
+    public void create(UserMetaChange userMetaChange){
         // delete all non executed and same type of meta change requests of the user
         // there will be always one active userMetaChange per User-MetaChangeType
         userMetaChangeRepository.deleteAllByExecutedIsFalseAndUserIdAndMetaChangeType(
                 userMetaChange.getUserId(),userMetaChange.getMetaChangeType());
+        userMetaChangeRepository.save(userMetaChange);
+    }
+
+    @Transactional
+    public void update(UserMetaChange userMetaChange){
         userMetaChangeRepository.save(userMetaChange);
     }
 
@@ -33,6 +38,8 @@ public class UserMetaChangeService {
     public UserMetaChange findByLinkParam(String linkParam){
         return userMetaChangeRepository.findByLinkParam(linkParam);
     }
+
+
 
 
 }
