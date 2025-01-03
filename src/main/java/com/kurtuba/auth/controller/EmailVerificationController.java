@@ -1,6 +1,6 @@
 package com.kurtuba.auth.controller;
 
-import com.kurtuba.auth.data.dto.EmailValidationDto;
+import com.kurtuba.auth.data.dto.EmailVerificationDto;
 import com.kurtuba.auth.data.dto.ResultPageDto;
 import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.error.exception.BusinessLogicException;
@@ -15,20 +15,20 @@ import org.springframework.web.servlet.ModelAndView;
 
 @RestController
 @RequestMapping("auth")
-public class EmailValidationController {
+public class EmailVerificationController {
 
     final
     UserService userService;
 
-    public EmailValidationController(UserService userService) {
+    public EmailVerificationController(UserService userService) {
         this.userService = userService;
     }
 
-    @GetMapping("/email/validation/link/{linkParam}")
-    private ModelAndView validateEmailByLink(@NotEmpty @PathVariable String linkParam) {
+    @GetMapping("/email/verification/link/{linkParam}")
+    private ModelAndView verifyEmailByLink(@NotEmpty @PathVariable String linkParam) {
         ModelAndView modelAndView = new ModelAndView();
         try {
-            userService.validateEmailByLink(linkParam);
+            userService.verifyEmailByLink(linkParam);
             modelAndView.setViewName("genericResult.html");//sucess
             modelAndView.addAllObjects(ResultPageDto.builder()
                     .success(true)
@@ -41,19 +41,19 @@ public class EmailValidationController {
                     .success(false)
                     .title("Verification Failed!")
                     .message1(ex.getMessage())
-                    .message2("Try logging in to your account to request a new validation link")
+                    .message2("Try logging in to your account to request a new verification link")
                     .build().toMap());
         }
         return modelAndView;
     }
 
-    @PostMapping("/email/validation/code")
-    private ResponseEntity validateEmailByCode(@Valid @RequestBody EmailValidationDto validationDto) {
+    @PostMapping("/email/verification/code")
+    private ResponseEntity verifyEmailByCode(@Valid @RequestBody EmailVerificationDto verificationDto) {
         try {
-            userService.validateEmailByCode(validationDto.getUserMetaChangeId(), validationDto.getCode());
+            userService.verifyEmailByCode(verificationDto.getUserMetaChangeId(), verificationDto.getCode());
         } catch (BusinessLogicException e) {
             if (ErrorEnum.USER_META_CHANGE_CODE_MISMATCH.getCode().equals(e.getErrorCode())) {
-                userService.updateEmailChangeTryCount(validationDto);
+                userService.updateEmailChangeTryCount(verificationDto);
             }
             throw e;
         }
@@ -61,15 +61,15 @@ public class EmailValidationController {
                 .body("");
     }
 
-    @PutMapping("/email/registration/validation/code/{email}")
-    private ResponseEntity resendRegistrationEmailValidationCode(@NotEmpty @PathVariable String email) {
-        userService.sendRegistrationEmailValidationCode(email, true);
+    @PutMapping("/email/registration/verification/code/{email}")
+    private ResponseEntity resendAccountActivationCode(@NotEmpty @PathVariable String email) {
+        userService.sendAccountActivationMail(email, true);
         return ResponseEntity.status(HttpStatusCode.valueOf(org.eclipse.jetty.http.HttpStatus.OK_200)).body("success");
     }
 
-    @PutMapping("/email/registration/validation/link/{email}")
-    private ResponseEntity resendRegistrationEmailValidationLink(@NotEmpty @PathVariable String email) {
-        userService.sendRegistrationEmailValidationCode(email, false);
+    @PutMapping("/email/registration/verification/link/{email}")
+    private ResponseEntity resendAccountActivationLink(@NotEmpty @PathVariable String email) {
+        userService.sendAccountActivationMail(email, false);
         return ResponseEntity.status(HttpStatusCode.valueOf(HttpStatus.OK_200)).body("success");
     }
 }

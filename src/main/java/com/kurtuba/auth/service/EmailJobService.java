@@ -1,6 +1,6 @@
 package com.kurtuba.auth.service;
 
-import com.kurtuba.auth.data.dto.EmailValidationMailDto;
+import com.kurtuba.auth.data.dto.EmailVerificationMailDto;
 import com.kurtuba.auth.data.enums.EmailJobStateType;
 import com.kurtuba.auth.data.enums.MailType;
 import com.kurtuba.auth.data.enums.MetaChangeType;
@@ -52,19 +52,19 @@ public class EmailJobService {
     }
 
     @Transactional
-    public void sendRegistrationValidationCodeMail(@NotEmpty String recipient, @NotEmpty String validationCode) {
-        EmailValidationMailDto validationMailDto = EmailValidationMailDto.builder()
+    public void sendAccountActivationCodeMail(@NotEmpty String recipient, @NotEmpty String verificationCode) {
+        EmailVerificationMailDto verificationMailDto = EmailVerificationMailDto.builder()
                 .title("THANKS FOR SIGNING UP!")
                 .greet("Hi")
-                .msg1("You're almost ready to get started. Here is your validation code")
-                .validationCode(validationCode)
-                .validationLink("")
+                .msg1("You're almost ready to get started. Here is your activation code")
+                .verificationCode(verificationCode)
+                .verificationLink("")
                 .displayCode("block")
                 .displayLink("none")
                 .msg2("Login to Kurtuba with your existing credentials to enter the code")
                 .build();
         try {
-            String htmlFileContent = EmailUtils.setRegistrationEmailValidationMessageBody(validationMailDto);
+            String htmlFileContent = EmailUtils.setRegistrationEmailVerificationMessageBody(verificationMailDto);
 
             emailJobRepository.save(EmailJob.builder()
                     .createdDate(LocalDateTime.now())
@@ -74,7 +74,7 @@ public class EmailJobService {
                     .state(EmailJobStateType.PENDING)
                     .tryCount(0)
                     .recipient(recipient)
-                    .subject("Kurtuba Email Validation Code")
+                    .subject("Kurtuba Account Activation Code")
                     .message(htmlFileContent)
                     .sender("sender-test@example.com")
                     .build());
@@ -84,23 +84,23 @@ public class EmailJobService {
     }
 
     @Transactional
-    public void sendRegistrationValidationLinkMail(String recipient, String validationCode) {
-        String validationLink = authServerProtocol + authServerIp + ":" + authServerPort +
-                "/auth/email/validation/link/" + validationCode;
+    public void sendAccountActivationLinkMail(String recipient, String verificationCode) {
+        String verificationLink = authServerProtocol + authServerIp + ":" + authServerPort +
+                "/auth/email/verification/link/" + verificationCode;
 
-        EmailValidationMailDto validationMailDto = EmailValidationMailDto.builder()
+        EmailVerificationMailDto verificationMailDto = EmailVerificationMailDto.builder()
                 .title("THANKS FOR SIGNING UP!")
                 .greet("Hi")
                 .msg1("You're almost ready to get started. Click below to verify your mail address")
-                .validationLink(validationLink)
-                .validationCode("")
+                .verificationLink(verificationLink)
+                .verificationCode("")
                 .displayCode("none")
                 .displayLink("block")
                 .msg2("")
                 .build();
 
         try {
-            String htmlFileContent = EmailUtils.setRegistrationEmailValidationMessageBody(validationMailDto);
+            String htmlFileContent = EmailUtils.setRegistrationEmailVerificationMessageBody(verificationMailDto);
 
             emailJobRepository.save(EmailJob.builder()
                     .createdDate(LocalDateTime.now())
@@ -110,7 +110,7 @@ public class EmailJobService {
                     .state(EmailJobStateType.PENDING)
                     .tryCount(0)
                     .recipient(recipient)
-                    .subject("Kurtuba Email Validation")
+                    .subject("Kurtuba Email Verification")
                     .message(htmlFileContent)
                     .sender("sender-test@example.com")
                     .build());
@@ -176,21 +176,21 @@ public class EmailJobService {
         }
     }
 
-    public void sendUserEmailChangeCodeMail(String recipient, String validationCode) {
+    public void sendUserEmailChangeCodeMail(String recipient, String verificationCode) {
 
-        EmailValidationMailDto validationMailDto = EmailValidationMailDto.builder()
-                .title("Validate Your E-mail Address!")
+        EmailVerificationMailDto verificationMailDto = EmailVerificationMailDto.builder()
+                .title("Verify Your E-mail Address!")
                 .greet("Hi")
-                .msg1("Here is your validation code")
-                .validationCode(validationCode)
-                .validationLink("")
+                .msg1("Here is your verification code")
+                .verificationCode(verificationCode)
+                .verificationLink("")
                 .displayCode("block")
                 .displayLink("none")
                 .msg2("")
                 .build();
 
         try {
-            String htmlFileContent = EmailUtils.setRegistrationEmailValidationMessageBody(validationMailDto);
+            String htmlFileContent = EmailUtils.setRegistrationEmailVerificationMessageBody(verificationMailDto);
 
             emailJobRepository.save(EmailJob.builder()
                     .createdDate(LocalDateTime.now())
@@ -200,7 +200,7 @@ public class EmailJobService {
                     .state(EmailJobStateType.PENDING)
                     .tryCount(0)
                     .recipient(recipient)
-                    .subject("Kurtuba Email Validation Code")
+                    .subject("Kurtuba Email Verification Code")
                     .message(htmlFileContent)
                     .sender("sender-test@example.com")
                     .build());
@@ -210,24 +210,24 @@ public class EmailJobService {
     }
 
     @Transactional
-    public void sendUserEmailChangeLinkMail(String recipient, String validationCode) {
+    public void sendUserEmailChangeLinkMail(String recipient, String verificationCode) {
 
-        String validationLink = authServerProtocol + authServerIp + ":" + authServerPort +
-                "/auth/email/validation/link/" + validationCode;
+        String verificationLink = authServerProtocol + authServerIp + ":" + authServerPort +
+                "/auth/email/verification/link/" + verificationCode;
 
-        EmailValidationMailDto validationMailDto = EmailValidationMailDto.builder()
-                .title("Validate Your E-mail Address!")
+        EmailVerificationMailDto verificationMailDto = EmailVerificationMailDto.builder()
+                .title("Verify Your E-mail Address!")
                 .greet("Hi")
-                .msg1("Click below to validate your email address")
-                .validationLink(validationLink)
-                .validationCode("")
+                .msg1("Click below to verify your email address")
+                .verificationLink(verificationLink)
+                .verificationCode("")
                 .displayCode("none")
                 .displayLink("block")
                 .msg2("")
                 .build();
 
         try {
-            String htmlFileContent = EmailUtils.setRegistrationEmailValidationMessageBody(validationMailDto);
+            String htmlFileContent = EmailUtils.setRegistrationEmailVerificationMessageBody(verificationMailDto);
 
             emailJobRepository.save(EmailJob.builder()
                     .createdDate(LocalDateTime.now())
@@ -237,7 +237,7 @@ public class EmailJobService {
                     .state(EmailJobStateType.PENDING)
                     .tryCount(0)
                     .recipient(recipient)
-                    .subject("Kurtuba Email Validation")
+                    .subject("Kurtuba Email Verification")
                     .message(htmlFileContent)
                     .sender("sender-test@example.com")
                     .build());

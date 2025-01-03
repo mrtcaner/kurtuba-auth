@@ -78,9 +78,9 @@ public class User implements Serializable {
 
     private boolean showCaptcha;
 
-    private boolean emailValidated;
+    private boolean emailVerified;
 
-    private boolean phoneValidated;
+    private boolean phoneVerified;
 
     @Nullable
     private LocalDateTime lastLoginAttempt;

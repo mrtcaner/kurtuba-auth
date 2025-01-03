@@ -36,7 +36,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static com.kurtuba.auth.utils.Utils.generateRandomAlphanumericString;
-import static com.kurtuba.auth.utils.Utils.generateValidationCode;
+import static com.kurtuba.auth.utils.Utils.generateVerificationCode;
 
 @Service
 public class UserService {
@@ -240,10 +240,10 @@ public class UserService {
                 .executed(false)
                 .createdDate(LocalDateTime.now())
                 .expirationDate(LocalDateTime.now().plusMinutes(activationCodeValidityMinutes))
-                .maxTryCount(newUser.isEmailValidationByCode() ? metaChangeMaxTryCount : null)
-                .tryCount(newUser.isEmailValidationByCode() ? 0 : null)
-                .code(newUser.isEmailValidationByCode() ? generateValidationCode() : null)
-                .linkParam(!newUser.isEmailValidationByCode() ?
+                .maxTryCount(newUser.isEmailVerificationByCode() ? metaChangeMaxTryCount : null)
+                .tryCount(newUser.isEmailVerificationByCode() ? 0 : null)
+                .code(newUser.isEmailVerificationByCode() ? generateVerificationCode() : null)
+                .linkParam(!newUser.isEmailVerificationByCode() ?
                         Base64.getEncoder().encodeToString(UUID.randomUUID().toString().getBytes()) : null)
                 .build();
 
@@ -256,10 +256,10 @@ public class UserService {
                         .build()));
         userRoleRepository.saveAll(user.getUserRoles());
 
-        if (newUser.isEmailValidationByCode()) {
-            emailJobService.sendRegistrationValidationCodeMail(user.getEmail(), metaChange.getCode());
+        if (newUser.isEmailVerificationByCode()) {
+            emailJobService.sendAccountActivationCodeMail(user.getEmail(), metaChange.getCode());
         } else {
-            emailJobService.sendRegistrationValidationLinkMail(user.getEmail(), metaChange.getLinkParam());
+            emailJobService.sendAccountActivationLinkMail(user.getEmail(), metaChange.getLinkParam());
         }
 
         return metaChange.getId();
@@ -267,11 +267,11 @@ public class UserService {
 
 
     @Transactional
-    public UserDto validateEmailByLink(@NotEmpty String linkParam) {
+    public UserDto verifyEmailByLink(@NotEmpty String linkParam) {
         UserMetaChange userMetaChange = userMetaChangeService.findByLinkParam(linkParam);
 
         if (userMetaChange == null) {
-            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_VALIDATION_CODE_INVALID);
+            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_VERIFICATION_CODE_INVALID);
         }
 
         User user = userRepository.getUserById(userMetaChange.getUserId());
@@ -279,22 +279,22 @@ public class UserService {
     }
 
     /**
-     * Validate email by rest request. User must enter the code mailed to them
+     * Verify email by rest request. User must enter the code mailed to them
      *
      * @param userMetaChangeId
      * @param code             is random numeric string
      * @return
      */
     @Transactional
-    public UserDto validateEmailByCode(@NotEmpty String userMetaChangeId, @NotEmpty String code) {
+    public UserDto verifyEmailByCode(@NotEmpty String userMetaChangeId, @NotEmpty String code) {
 
         UserMetaChange userMetaChange = userMetaChangeService
                 .findById(userMetaChangeId).orElseThrow(() ->
-                        new BusinessLogicException(ErrorEnum.USER_EMAIL_VALIDATION_CODE_INVALID));
+                        new BusinessLogicException(ErrorEnum.USER_EMAIL_VERIFICATION_CODE_INVALID));
         User user = userRepository.getUserById(userMetaChange.getUserId());
 
         if (userMetaChange.getMaxTryCount() != null && userMetaChange.getTryCount() >= userMetaChange.getMaxTryCount()){
-            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_VALIDATE_CODE_EXPIRED);
+            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_VERIFICATION_CODE_EXPIRED);
         }
 
         if (!userMetaChange.getCode().equals(code)) {
@@ -310,18 +310,18 @@ public class UserService {
         }
 
         if (userMetaChange.isExecuted()) {
-            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_VALIDATION_STATUS_INVALID);
+            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_VERIFICATION_STATUS_INVALID);
         }
 
         if (userMetaChange.getMaxTryCount() != null && userMetaChange.getTryCount() >= userMetaChange.getMaxTryCount()){
-            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_VALIDATE_CODE_EXPIRED);
+            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_VERIFICATION_CODE_EXPIRED);
         }
 
         if (userMetaChange.getExpirationDate().isBefore(LocalDateTime.now())) {
-            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_VALIDATE_CODE_EXPIRED);
+            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_VERIFICATION_CODE_EXPIRED);
         }
 
-        if (user.isEmailValidated()) {
+        if (user.isEmailVerified()) {
             //this is a change operation
             //send change notification mail to old e-mail
             emailJobService.sendUserMetaChangeNotificationMail(user.getEmail(), MetaChangeType.EMAIL);
@@ -330,7 +330,7 @@ public class UserService {
             user.setActivated(true);
         }
         user.setEmail(userMetaChange.getMeta());
-        user.setEmailValidated(true);
+        user.setEmailVerified(true);
 
         userRepository.save(user);
         userMetaChange.setExecuted(true);
@@ -341,15 +341,15 @@ public class UserService {
     }
 
     /**
-     * User registered for the first time and no email is validated(account activation)
+     * User registered for the first time and no email is verified(account activation)
      * Assumes the email address is in user table and also an expired code exist in user_meta_change table
      */
     @Transactional
-    public void sendRegistrationEmailValidationCode(@NotEmpty String email, boolean byCode) {
+    public void sendAccountActivationMail(@NotEmpty String email, boolean byCode) {
 
-        User user = userRepository.getUserByEmailAndEmailValidatedIsFalse(email);
+        User user = userRepository.getUserByEmailAndEmailVerifiedIsFalse(email);
         if (user == null) {
-            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_VALIDATION_STATUS_INVALID);
+            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_VERIFICATION_STATUS_INVALID);
         }
 
         UserMetaChange metaChange = UserMetaChange.builder()
@@ -361,15 +361,15 @@ public class UserService {
                 .expirationDate(LocalDateTime.now().plusMinutes(activationCodeValidityMinutes))
                 .maxTryCount(byCode ? metaChangeMaxTryCount : null)
                 .tryCount(byCode ? 0 : null)
-                .code(byCode ? generateValidationCode() : null)
+                .code(byCode ? generateVerificationCode() : null)
                 .linkParam(!byCode ?
                         Base64.getEncoder().encodeToString(UUID.randomUUID().toString().getBytes()) : null)
                 .build();
         userMetaChangeService.create(metaChange);
         if (byCode) {
-            emailJobService.sendRegistrationValidationCodeMail(user.getEmail(), metaChange.getCode());
+            emailJobService.sendAccountActivationCodeMail(user.getEmail(), metaChange.getCode());
         } else {
-            emailJobService.sendRegistrationValidationLinkMail(user.getEmail(), metaChange.getLinkParam());
+            emailJobService.sendAccountActivationLinkMail(user.getEmail(), metaChange.getLinkParam());
         }
 
 
@@ -410,7 +410,7 @@ public class UserService {
         if (existingUser == null) {
             //this user never existed, let make one and return a token
             User user = decodedUser.toUser();
-            user.setEmailValidated(true);
+            user.setEmailVerified(true);
             String pass = UUID.randomUUID().toString();
             user.setPassword(new BCryptPasswordEncoder().encode(pass));
             String provisionalUsername = user.getEmail().split("@")[0];
@@ -575,8 +575,8 @@ public class UserService {
             throw new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST);
         }
 
-        if (!user.isEmailValidated()) {
-            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_NOT_VALIDATED);
+        if (!user.isEmailVerified()) {
+            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_NOT_VERIFIED);
         }
 
         UserMetaChange metaChange = UserMetaChange.builder()
@@ -585,7 +585,7 @@ public class UserService {
                 .expirationDate(LocalDateTime.now().plusMinutes(passwordResetCodeValidityMinutes))
                 .maxTryCount(byCode ? metaChangeMaxTryCount : null)
                 .tryCount(byCode ? 0 : null)
-                .code(byCode ? generateValidationCode() : null)
+                .code(byCode ? generateVerificationCode() : null)
                 .linkParam(!byCode ?
                         Base64.getEncoder().encodeToString(UUID.randomUUID().toString().getBytes()) : null)
                 .createdDate(LocalDateTime.now())
@@ -630,7 +630,7 @@ public class UserService {
     }
 
     /**
-     * User registered and there is already a validated email(email change operation)
+     * User registered and there is already a verified email(email change operation)
      *
      * @param userId
      * @param email
@@ -648,7 +648,7 @@ public class UserService {
         }
 
         // user must be in a valid state
-        if (!user.isEmailValidated() || user.isLocked() || user.isShowCaptcha() || !user.isActivated()) {
+        if (!user.isEmailVerified() || user.isLocked() || user.isShowCaptcha() || !user.isActivated()) {
             throw new BusinessLogicException(ErrorEnum.USER_INVALID_STATE);
         }
 
@@ -661,7 +661,7 @@ public class UserService {
                 .expirationDate(LocalDateTime.now().plusMinutes(emailChangeCodeValidityMinutes))
                 .maxTryCount(byCode ? metaChangeMaxTryCount : null)
                 .tryCount(byCode ? 0 : null)
-                .code(byCode ? generateValidationCode() : null)
+                .code(byCode ? generateVerificationCode() : null)
                 .linkParam(!byCode ?
                         Base64.getEncoder().encodeToString(UUID.randomUUID().toString().getBytes()) : null)
                 .build();
@@ -678,8 +678,8 @@ public class UserService {
     }
 
     @Transactional
-    public void updateEmailChangeTryCount(@Valid EmailValidationDto emailValidationDto) {
-        UserMetaChange userMetaChange = userMetaChangeService.findById(emailValidationDto.getUserMetaChangeId())
+    public void updateEmailChangeTryCount(@Valid EmailVerificationDto emailVerificationDto) {
+        UserMetaChange userMetaChange = userMetaChangeService.findById(emailVerificationDto.getUserMetaChangeId())
                 .get();
         updateUserMetaChangeTryCount(userMetaChange);
     }

@@ -20,6 +20,6 @@ public interface UserRepository extends CrudRepository<User, String> {
 
 	User getUserByEmailAndAuthProvider(String email, AuthProviderType provider);
 
-	User getUserByEmailAndEmailValidatedIsFalse(String email);
+	User getUserByEmailAndEmailVerifiedIsFalse(String email);
 
 }

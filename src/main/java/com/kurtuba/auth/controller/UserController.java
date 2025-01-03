@@ -254,15 +254,15 @@ public class UserController {
     }
 
     /**
-     * Sends a validation code to given email address for logged-in user
+     * Sends a verification code to given email address for logged-in user
      *
      * @param email
      * @param principal
      * @return
      */
     @PostMapping("/email/code/{email}")
-    public ResponseEntity sendEmailValidationCode(@Valid @Email(regexp = Utils.EMAIL_REGEX) @PathVariable String email,
-                                                  Principal principal) {
+    public ResponseEntity sendEmailVerificationCode(@Valid @Email(regexp = Utils.EMAIL_REGEX) @PathVariable String email,
+                                                    Principal principal) {
 
         return ResponseEntity.status(HttpStatus.OK_200)
                 .body(UserMetaChangeDto.builder()
@@ -273,14 +273,14 @@ public class UserController {
     }
 
     /**
-     * Sends a validation link to given email address for logged-in user
+     * Sends a verification link to given email address for logged-in user
      * @param email
      * @param principal
      * @return
      */
     @PostMapping("/email/link/{email}")
-    public ResponseEntity sendEmailValidationLink(@Valid @Email(regexp = Utils.EMAIL_REGEX) @PathVariable String email,
-                                                  Principal principal) {
+    public ResponseEntity sendEmailVerificationLink(@Valid @Email(regexp = Utils.EMAIL_REGEX) @PathVariable String email,
+                                                    Principal principal) {
         userService.requestChangeEmail(principal.getName(), email, false);
         return ResponseEntity.status(HttpStatus.OK_200).body("");
     }
