@@ -47,7 +47,7 @@ public class UserRegistrationDto {
     @Enumerated(EnumType.STRING)
     private AuthProviderType authProvider;
 
-    boolean emailValidationByCode;
+    boolean emailVerificationByCode;
 
     public User toUser() {
         return User.builder()
@@ -63,7 +63,7 @@ public class UserRegistrationDto {
                 .locked(false)
                 .failedLoginCount(0)
                 .showCaptcha(false)
-                .emailValidated(false)
+                .emailVerified(false)
                 .createdDate(LocalDateTime.now())
                 .build();
     }

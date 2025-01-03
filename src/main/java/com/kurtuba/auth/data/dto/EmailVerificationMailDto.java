@@ -7,13 +7,13 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 @Builder
-public class EmailValidationMailDto {
+public class EmailVerificationMailDto {
 
     String title;
     String greet;
-    String validationCode;
+    String verificationCode;
     String displayCode;
-    String validationLink;
+    String verificationLink;
     String displayLink;
     String msg1;
     String msg2;

@@ -34,8 +34,8 @@ public class UserDto {
     private boolean locked;
     private int failedLoginCount;
     private boolean showCaptcha;
-    private String emailValidationCode;
-    private boolean emailValidated;
+    private boolean emailVerified;
+    private boolean phoneVerified;
     private LocalDateTime lastLoginAttempt;
     private LocalDateTime dateCreated;
 
@@ -58,7 +58,8 @@ public class UserDto {
                 .locked(locked)
                 .failedLoginCount(failedLoginCount)
                 .showCaptcha(showCaptcha)
-                .emailValidated(emailValidated)
+                .emailVerified(emailVerified)
+                .phoneVerified(phoneVerified)
                 .lastLoginAttempt(lastLoginAttempt)
                 .createdDate(dateCreated)
                 .build();
@@ -83,7 +84,8 @@ public class UserDto {
                 .locked(user.isLocked())
                 .failedLoginCount(user.getFailedLoginCount())
                 .showCaptcha(user.isShowCaptcha())
-                .emailValidated(user.isEmailValidated())
+                .emailVerified(user.isEmailVerified())
+                .phoneVerified(user.isPhoneVerified())
                 .lastLoginAttempt(user.getLastLoginAttempt())
                 .dateCreated(user.getCreatedDate())
                 .build();

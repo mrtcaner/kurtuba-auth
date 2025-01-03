@@ -95,7 +95,7 @@ public class UserTokenService {
 
         User user = userRepository.getUserById(claims.getSubject());
         // check user state
-        if (!user.isActivated() || !user.isEmailValidated() || user.isLocked() || user.isShowCaptcha()) {
+        if (!user.isActivated() || !user.isEmailVerified() || user.isLocked() || user.isShowCaptcha()) {
             throw new BusinessLogicException(ErrorEnum.USER_INVALID_STATE);
         }
 
@@ -151,7 +151,7 @@ public class UserTokenService {
 
         User user = userRepository.getUserById(claims.getSubject());
         // check user state
-        if (!user.isActivated() || !user.isEmailValidated() || user.isLocked() || user.isShowCaptcha()) {
+        if (!user.isActivated() || !user.isEmailVerified() || user.isLocked() || user.isShowCaptcha()) {
             throw new BusinessLogicException(ErrorEnum.USER_INVALID_STATE);
         }
 

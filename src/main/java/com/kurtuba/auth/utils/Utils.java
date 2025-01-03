@@ -11,7 +11,7 @@ public class Utils {
 
     public static final String PASSWORD_REGEX = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[\\.@$!%*#?&])[A-Za-z\\d\\.@$!%*#?&]{8,}$";
 
-    public static String generateValidationCode(){
+    public static String generateVerificationCode(){
         int code = new Random().nextInt(999999);
         String numStr = String.valueOf(code);
         while(numStr.length() < 6){
