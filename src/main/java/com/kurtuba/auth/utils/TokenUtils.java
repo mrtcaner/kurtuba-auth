@@ -4,7 +4,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
-import com.kurtuba.auth.data.dto.UserRegistrationDto;
+import com.kurtuba.auth.data.dto.RegistrationDto;
 import com.kurtuba.auth.data.enums.AuthProviderType;
 import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.error.exception.BusinessLogicException;
@@ -185,8 +185,8 @@ public class TokenUtils {
      * @throws GeneralSecurityException
      * @throws IOException
      */
-    public static UserRegistrationDto decodeGoogleToken(String idTokenString, String clientId) throws GeneralSecurityException, IOException {
-        UserRegistrationDto newUser = new UserRegistrationDto();
+    public static RegistrationDto decodeGoogleToken(String idTokenString, String clientId) throws GeneralSecurityException, IOException {
+        RegistrationDto newUser = new RegistrationDto();
         GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                 // Specify the CLIENT_ID of the app that accesses the backend:
                 .setAudience(Collections.singletonList(clientId))

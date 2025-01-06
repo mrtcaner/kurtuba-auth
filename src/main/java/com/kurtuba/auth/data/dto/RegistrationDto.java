@@ -25,7 +25,7 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserRegistrationDto {
+public class RegistrationDto {
     @NotEmpty(message = "The full name is required.")
     @Size(min = 2, max = 100, message = "Name must be between 2-100 characters.")
     private String name;

@@ -255,7 +255,7 @@ public class MessageJobService {
     @Transactional
     public void sendUserMetaChangeNotificationMail(String recipient, MetaOperationType metaOperationType) {
         String metaName = metaOperationType == MetaOperationType.PASSWORD_CHANGE || metaOperationType == MetaOperationType.PASSWORD_RESET ? "password" :
-                metaOperationType.name().toLowerCase();
+                "email";
         try {
             File htmlFile = ResourceUtils.getFile("classpath:templates/mailUserMetaChangeNotification.html");
             String htmlFileContent = new String(Files.readAllBytes(htmlFile.toPath()));

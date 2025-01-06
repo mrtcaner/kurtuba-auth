@@ -1,7 +1,6 @@
 package com.kurtuba.auth.service;
 
 import com.kurtuba.auth.data.dto.TokenRefreshRequestDto;
-import com.kurtuba.auth.data.dto.TokenResponseDto;
 import com.kurtuba.auth.data.dto.TokensResponseDto;
 import com.kurtuba.auth.data.enums.JWTClaimType;
 import com.kurtuba.auth.data.enums.RegisteredClientType;

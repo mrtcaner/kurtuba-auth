@@ -187,7 +187,7 @@ public class UserService {
     }
 
     @Transactional
-    public String register(@Valid UserRegistrationDto newUser) {
+    public String register(@Valid RegistrationDto newUser) {
         if (StringUtils.hasLength(newUser.getEmail()) && userRepository.getUserByEmail(newUser.getEmail()) != null) {
             throw new BusinessLogicException(ErrorEnum.USER_EMAIL_ALREADY_EXISTS);
         }
@@ -400,9 +400,9 @@ public class UserService {
     }
 
     @Transactional
-    public UserRegistrationDto registerByAnotherProvider(@Valid UserRegistrationOtherProviderDto newUserByOtherProvider) {
+    public RegistrationDto registerByAnotherProvider(@Valid RegistrationOtherProviderDto newUserByOtherProvider) {
 
-        UserRegistrationDto decodedUser = null;
+        RegistrationDto decodedUser = null;
         if (newUserByOtherProvider.getProvider().equals(AuthProviderType.GOOGLE)) {
             try {
                 decodedUser = TokenUtils.decodeGoogleToken(newUserByOtherProvider.getToken(), newUserByOtherProvider.getClientId());
@@ -415,7 +415,7 @@ public class UserService {
             try {
 
                 JsonObject jsonUser = TokenUtils.decodeTokenPayload(newUserByOtherProvider.getToken());
-                decodedUser = new UserRegistrationDto();
+                decodedUser = new RegistrationDto();
                 decodedUser.setEmail(jsonUser.get("email").getAsString());
                 decodedUser.setName(jsonUser.get("given_name").getAsString());
                 decodedUser.setSurname(jsonUser.get("family_name").getAsString());
