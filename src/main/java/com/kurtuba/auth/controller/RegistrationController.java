@@ -37,7 +37,7 @@ public class RegistrationController {
     @ApiResponse(responseCode = "201", description = "User created successfully",
             content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = RegistrationResponseDto.class))})
-    public ResponseEntity register(@Valid @RequestBody UserRegistrationDto newUser) {
+    public ResponseEntity register(@Valid @RequestBody RegistrationDto newUser) {
         return ResponseEntity.status(HttpStatusCode.valueOf(HttpStatus.CREATED_201)).body(
                 RegistrationResponseDto.builder()
                         .userMetaChangeId(userService.register(newUser))
@@ -49,8 +49,8 @@ public class RegistrationController {
             content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = TokensResponseDto.class))})
     @PostMapping("/registration/other-provider")
-    public ResponseEntity<TokensResponseDto> registerViaAnotherProvider(@Valid @RequestBody UserRegistrationOtherProviderDto newUser) {
-        UserRegistrationDto dto = userService.registerByAnotherProvider(newUser);
+    public ResponseEntity<TokensResponseDto> registerViaAnotherProvider(@Valid @RequestBody RegistrationOtherProviderDto newUser) {
+        RegistrationDto dto = userService.registerByAnotherProvider(newUser);
         TokensResponseDto tokenResponseDto = userService.generateTokensForLogin(dto.getEmail(), dto.getPassword(),
                 registeredClientRepository.findByClientName("kurtuba-mobile-client").getClientId(), "");
         return ResponseEntity

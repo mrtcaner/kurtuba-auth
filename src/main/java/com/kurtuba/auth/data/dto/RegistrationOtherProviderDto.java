@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserRegistrationOtherProviderDto {
+public class RegistrationOtherProviderDto {
 
     @NotNull
     AuthProviderType provider;
