@@ -22,7 +22,7 @@ public enum ErrorEnum {
     USER_PASSWORD_CHANGE_WRONG_PASSWORD("Old password wrong",1310),
     USER_MOBILE_ALREADY_EXISTS("A user with mobile number already exists",1311),
     USER_PASSWORD_CHANGE_NEW_PASSWORD_MISMATCH("New passwords don't match",1312),
-    USER_META_CHANGE_INVALID_OPERATION("Invalid meta modification",1315),
+    USER_META_CHANGE_INVALID_OPERATION("Invalid meta modification. Operation carried out or doesn't exist",1315),
     USER_META_CHANGE_CODE_MISMATCH("Code mismatch",1316),
     USER_META_CHANGE_CODE_EXPIRED("Code expired",1317),
     USER_REGISTRATION_CONTACT_TYPE_MAIL_MISSING("email contact is preferred but no email is provided",1318),

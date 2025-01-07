@@ -22,14 +22,16 @@ public class UserMetaChangeService {
     /**
      * deletes all non executed and same type of meta change requests of the user then creates a new one
      * there will be always one active userMetaChange per User-MetaChangeType
+     *
      * @param userMetaChange
+     * @return
      */
     @Transactional
-    public void create(UserMetaChange userMetaChange){
+    public UserMetaChange create(UserMetaChange userMetaChange){
 
         userMetaChangeRepository.deleteAllByExecutedIsFalseAndUserIdAndMetaOperationType(
                 userMetaChange.getUserId(),userMetaChange.getMetaOperationType());
-        userMetaChangeRepository.save(userMetaChange);
+        return userMetaChangeRepository.save(userMetaChange);
     }
 
     @Transactional
@@ -41,7 +43,7 @@ public class UserMetaChangeService {
         return userMetaChangeRepository.findById(userMetaChangeId);
     }
 
-    public UserMetaChange findByLinkParam(String linkParam){
+    public Optional<UserMetaChange> findByLinkParam(String linkParam){
         return userMetaChangeRepository.findByLinkParam(linkParam);
     }
 
@@ -50,7 +52,7 @@ public class UserMetaChangeService {
      * @param userId
      * @return
      */
-    public UserMetaChange findActiveMetaChangeOperationForUser(String userId, MetaOperationType metaOperationType){
+    public Optional<UserMetaChange> findActiveMetaChangeOperationForUser(String userId, MetaOperationType metaOperationType){
         return userMetaChangeRepository.findByUserIdAndMetaOperationTypeAndExpirationDateAfterAndExecutedIsFalse(
                 userId, metaOperationType, LocalDateTime.now()
         );

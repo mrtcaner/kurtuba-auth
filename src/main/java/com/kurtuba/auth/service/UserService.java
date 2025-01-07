@@ -188,15 +188,15 @@ public class UserService {
 
     @Transactional
     public String register(@Valid RegistrationDto newUser) {
-        if (StringUtils.hasLength(newUser.getEmail()) && userRepository.getUserByEmail(newUser.getEmail()) != null) {
+        if (StringUtils.hasLength(newUser.getEmail()) && userRepository.getUserByEmail(newUser.getEmail()).isPresent()) {
             throw new BusinessLogicException(ErrorEnum.USER_EMAIL_ALREADY_EXISTS);
         }
 
-        if (StringUtils.hasLength(newUser.getMobile()) && userRepository.getUserByMobile(newUser.getMobile()) != null) {
+        if (StringUtils.hasLength(newUser.getMobile()) && userRepository.getUserByMobile(newUser.getMobile()).isPresent()) {
             throw new BusinessLogicException(ErrorEnum.USER_MOBILE_ALREADY_EXISTS);
         }
 
-        if (StringUtils.hasLength(newUser.getUsername()) && userRepository.getUserByUsername(newUser.getUsername()) != null) {
+        if (StringUtils.hasLength(newUser.getUsername()) && userRepository.getUserByUsername(newUser.getUsername()).isPresent()) {
             throw new BusinessLogicException(ErrorEnum.USER_USERNAME_ALREADY_EXISTS);
         }
 
@@ -262,8 +262,9 @@ public class UserService {
 
     @Transactional
     public UserMetaChange verifyEmailByLink(@NotEmpty String linkParam) {
-        UserMetaChange userMetaChange = userMetaChangeService.findByLinkParam(linkParam);
-        validateEmailChangeUserMetaChange(userMetaChange);
+        UserMetaChange userMetaChange = userMetaChangeService.findByLinkParam(linkParam).orElseThrow(() ->
+                new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION));
+        validateEmailChangeUserMetaChange(userMetaChange, null);
         User user = userRepository.getUserById(userMetaChange.getUserId()).orElseThrow(() ->
                 new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST));
         saveNewEmail(userMetaChange, user);
@@ -283,13 +284,10 @@ public class UserService {
                 new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST));
 
         UserMetaChange userMetaChange = userMetaChangeService
-                .findActiveMetaChangeOperationForUser(user.getId(), MetaOperationType.EMAIL_CHANGE);
+                .findActiveMetaChangeOperationForUser(user.getId(), MetaOperationType.EMAIL_CHANGE).orElseThrow(() ->
+                        new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION));
 
-        validateEmailChangeUserMetaChange(userMetaChange);
-
-        if (!userMetaChange.getCode().equals(code)) {
-            throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_CODE_MISMATCH);
-        }
+        validateEmailChangeUserMetaChange(userMetaChange, code);
 
         return saveNewEmail(userMetaChange, user);
     }
@@ -311,17 +309,23 @@ public class UserService {
         return UserDto.fromUser(user);
     }
 
-    private void validateEmailChangeUserMetaChange(UserMetaChange userMetaChange) {
-        if (userMetaChange == null) {
-            throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION);
-        }
+    private void validateEmailChangeUserMetaChange(UserMetaChange userMetaChange, String code) {
 
         if (!userMetaChange.getMetaOperationType().equals(MetaOperationType.EMAIL_CHANGE)) {
             throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION);
         }
 
+        validateUserMetaChange(userMetaChange, code);
+    }
+
+    private void validateUserMetaChange(UserMetaChange userMetaChange, String code){
+
         if (userMetaChange.getMaxTryCount() != null && userMetaChange.getTryCount() >= userMetaChange.getMaxTryCount()) {
             throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_CODE_EXPIRED);
+        }
+
+        if (StringUtils.hasLength(code) && !userMetaChange.getCode().equals(code)){
+            throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_CODE_MISMATCH);
         }
 
         if (userMetaChange.isExecuted()) {
@@ -551,8 +555,9 @@ public class UserService {
     }
 
     public UserMetaChange validatePasswordResetLinkParam(String linkParam) {
-        UserMetaChange userMetaChange = userMetaChangeService.findByLinkParam(linkParam);
-        validatePasswordResetUserMetaChange(userMetaChange);
+        UserMetaChange userMetaChange = userMetaChangeService.findByLinkParam(linkParam).orElseThrow(() ->
+                new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION));
+        validatePasswordResetUserMetaChange(userMetaChange, null);
         return userMetaChange;
     }
 
@@ -569,13 +574,10 @@ public class UserService {
                 .findActiveMetaChangeOperationForUser(userRepository
                         .getUserByEmailOrMobile(passwordResetByCodeDto.getEmailMobile()).orElseThrow(() ->
                                 new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST)
-                        ).getId(),MetaOperationType.PASSWORD_RESET);
+                        ).getId(),MetaOperationType.PASSWORD_RESET).orElseThrow(() ->
+                        new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION));
 
-        validatePasswordResetUserMetaChange(userMetaChange);
-
-        if (!userMetaChange.getCode().equals(passwordResetByCodeDto.getCode())) {
-            throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_CODE_MISMATCH);
-        }
+        validatePasswordResetUserMetaChange(userMetaChange, passwordResetByCodeDto.getCode());
 
         saveNewPassword(userMetaChange, passwordResetByCodeDto.getNewPassword(), passwordResetByCodeDto.getRepeatNewPassword());
         User user = userRepository.getUserById(userMetaChange.getUserId()).orElseThrow(() ->
@@ -701,52 +703,22 @@ public class UserService {
 
     }
 
-    private void validatePasswordResetUserMetaChange(UserMetaChange userMetaChange) {
-        if (userMetaChange == null) {
-            throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION);
-        }
-
-        if (userMetaChange.getMaxTryCount() != null && userMetaChange.getTryCount() >= userMetaChange.getMaxTryCount()) {
-            throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_CODE_EXPIRED);
-        }
+    private void validatePasswordResetUserMetaChange(UserMetaChange userMetaChange, String code) {
 
         if (!userMetaChange.getMetaOperationType().equals(MetaOperationType.PASSWORD_RESET)) {
             throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION);
         }
 
-        if (userMetaChange.isExecuted()) {
-            throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_CODE_EXPIRED);
-        }
-
-        if (userMetaChange.getExpirationDate().isBefore(LocalDateTime.now())) {
-            throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_CODE_EXPIRED);
-        }
+        validateUserMetaChange(userMetaChange, code);
     }
 
     private void validateAccountActivationUserMetaChange(UserMetaChange userMetaChange, String code) {
-        if (userMetaChange == null) {
-            throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION);
-        }
-
-        if (userMetaChange.getMaxTryCount() != null && userMetaChange.getTryCount() >= userMetaChange.getMaxTryCount()) {
-            throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_CODE_EXPIRED);
-        }
-
-        if (StringUtils.hasLength(code) && !userMetaChange.getCode().equals(code)) {
-            throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_CODE_MISMATCH);
-        }
 
         if (!userMetaChange.getMetaOperationType().equals(MetaOperationType.ACCOUNT_ACTIVATION)) {
             throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION);
         }
 
-        if (userMetaChange.isExecuted()) {
-            throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_CODE_EXPIRED);
-        }
-
-        if (userMetaChange.getExpirationDate().isBefore(LocalDateTime.now())) {
-            throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_CODE_EXPIRED);
-        }
+        validateUserMetaChange(userMetaChange, code);
     }
 
     /**
@@ -801,7 +773,8 @@ public class UserService {
                 .findActiveMetaChangeOperationForUser(userRepository
                         .getUserByEmailOrMobile(emailVerificationDto.getEmailMobile()).orElseThrow(() ->
                                 new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST)
-                        ).getId(),MetaOperationType.EMAIL_CHANGE);
+                        ).getId(),MetaOperationType.EMAIL_CHANGE).orElseThrow(() ->
+                        new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION));
         updateUserMetaChangeTryCount(userMetaChange);
     }
 
@@ -811,7 +784,8 @@ public class UserService {
                 .findActiveMetaChangeOperationForUser(userRepository
                         .getUserByEmailOrMobile(passwordResetByCodeDto.getEmailMobile()).orElseThrow(() ->
                                 new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST)
-                        ).getId(), MetaOperationType.PASSWORD_RESET);
+                        ).getId(), MetaOperationType.PASSWORD_RESET).orElseThrow(() ->
+                        new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION));
         updateUserMetaChangeTryCount(userMetaChange);
     }
 
@@ -821,7 +795,8 @@ public class UserService {
                 .findActiveMetaChangeOperationForUser(userRepository
                         .getUserByEmailOrMobile(accountActivationDto.getEmailMobile()).orElseThrow(() ->
                                 new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST)
-                        ).getId(),MetaOperationType.ACCOUNT_ACTIVATION);
+                        ).getId(),MetaOperationType.ACCOUNT_ACTIVATION).orElseThrow(() ->
+                        new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION));
         updateUserMetaChangeTryCount(userMetaChange);
     }
 
@@ -834,7 +809,8 @@ public class UserService {
 
     @Transactional
     public UserMetaChange activateAccountByLink(String linkParam) {
-        UserMetaChange userMetaChange = userMetaChangeService.findByLinkParam(linkParam);
+        UserMetaChange userMetaChange = userMetaChangeService.findByLinkParam(linkParam).orElseThrow(() ->
+                new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION));
         validateAccountActivationUserMetaChange(userMetaChange, null);
         User user = userRepository.getUserById(userMetaChange.getUserId()).orElseThrow(() ->
                 new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST));
@@ -847,7 +823,8 @@ public class UserService {
         User user = userRepository.getUserByEmailOrMobile(emailMobile).orElseThrow(() ->
                 new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST));
         UserMetaChange userMetaChange = userMetaChangeService.findActiveMetaChangeOperationForUser(user.getId(),
-                MetaOperationType.ACCOUNT_ACTIVATION);
+                MetaOperationType.ACCOUNT_ACTIVATION).orElseThrow(() ->
+                new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION));
         validateAccountActivationUserMetaChange(userMetaChange, code);
         return activateAccount(user, userMetaChange, clientId, clientSecret);
     }
