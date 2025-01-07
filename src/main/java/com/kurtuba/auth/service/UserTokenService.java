@@ -242,11 +242,8 @@ public class UserTokenService {
 
     private UserToken checkRefreshTokenState(String jti) {
         UserToken userToken = userTokenRepository.findByJtiAndBlockedAndRefreshTokenExpAfter(
-                jti, false, LocalDateTime.now());
-
-        if (userToken == null) {
-            throw new BusinessLogicException(ErrorEnum.AUTH_INVALID_TOKEN);
-        }
+                jti, false, LocalDateTime.now()).orElseThrow(() ->
+                new BusinessLogicException(ErrorEnum.AUTH_INVALID_TOKEN));
 
         return userToken;
     }
