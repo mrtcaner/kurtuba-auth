@@ -1,4 +1,4 @@
-package com.kurtuba.auth.controller;
+package com.kurtuba.adm.controller;
 
 import com.kurtuba.auth.data.dto.LocalizationMessageDto;
 import com.kurtuba.auth.data.dto.LocalizationMessageResponseDto;
@@ -11,16 +11,15 @@ import jakarta.validation.Valid;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-/**
- * todo this controller must be in adm service
- */
+
 @RestController
-@RequestMapping("auth")
+@RequestMapping("adm")
 public class LocalizationController {
 
     final
@@ -31,6 +30,7 @@ public class LocalizationController {
     }
 
     @GetMapping("/localization")
+    @PreAuthorize("hasAuthority('SCOPE_ADMIN')")
     public ResponseEntity<List<LocalizationMessageResponseDto>> getLocalizations(@RequestParam(name = "lang", required = false) String lang,
                                                                                  @RequestParam(name = "key", required = false) String key){
         if(!StringUtils.hasLength(lang) && !StringUtils.hasLength(key)){
@@ -58,12 +58,14 @@ public class LocalizationController {
     }
 
     @PostMapping("/localization")
+    @PreAuthorize("hasAuthority('SCOPE_ADMIN')")
     public ResponseEntity createLocalization(@Valid @RequestBody LocalizationMessageDto localizationMessageDto){
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(LocalizationMessageResponseDto.fromLocalization(localizationMessageService.create(localizationMessageDto)));
     }
 
     @PutMapping("/localization")
+    @PreAuthorize("hasAuthority('SCOPE_ADMIN')")
     public ResponseEntity updateLocalization(@Valid @RequestBody LocalizationMessageUpdateDto localizationMessageUpdateDto){
         // for the sake of proper cache management, changing lang and key is not allowed. So this swap needs to
         //take place
@@ -77,6 +79,7 @@ public class LocalizationController {
 
     @CacheEvict(value = "localization", allEntries = true)
     @DeleteMapping("/localization/cache")
+    @PreAuthorize("hasAuthority('SCOPE_ADMIN')")
     public ResponseEntity deleteLocalizationCache(){
         return ResponseEntity.ok().build();
     }

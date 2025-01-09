@@ -34,7 +34,6 @@ public class LocalizationMessageService {
         return (List<LocalizationMessage>) localizationMessageRepository.findAll();
     }
 
-
     public List<LocalizationMessage> findByLanguageCode(String languageCode) {
         return (List<LocalizationMessage>) localizationMessageRepository.findByLanguageCode(languageCode);
     }

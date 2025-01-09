@@ -19,6 +19,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Base64;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -54,6 +56,59 @@ public class UserTokenService {
         this.tokenUtils = tokenUtils;
         this.userRepository = userRepository;
         this.registeredClientRepository = registeredClientRepository;
+    }
+
+    public List<UserToken> findAllByUserId(String userId){
+        return userTokenRepository.findAllByUserId(userId);
+    }
+
+    public List<UserToken> findAllByUserIdAndBlocked(String userId, boolean blocked){
+        return userTokenRepository.findAllByUserIdAndBlocked(userId, blocked);
+    }
+
+    public Optional<UserToken> findByJTI(String jti){
+        return userTokenRepository.findByJti(jti);
+    }
+
+    public Optional<UserToken> findByJTIAndBlocked(String jti, boolean blocked){
+        return userTokenRepository.findByJtiAndBlocked(jti, blocked);
+    }
+
+    @Transactional
+    @PreAuthorize("hasAuthority('SCOPE_ADMIN')")
+    public void changeTokenBlockByJTI(List<String> blockTokens, boolean block){
+        if(block){
+            userTokenRepository.saveAll(blockTokens.stream().map(jti -> {
+                UserToken ut = findByJTIAndBlocked(jti, true).orElseThrow(() ->
+                        new BusinessLogicException(ErrorEnum.INVALID_PARAMETER.getCode(),"Inconsistent token state"));
+                ut.setBlocked(false);
+                return ut;
+            }).toList());
+        }else{
+            userTokenRepository.saveAll(blockTokens.stream().map(jti -> {
+                UserToken ut = findByJTIAndBlocked(jti, false).orElseThrow(() ->
+                        new BusinessLogicException(ErrorEnum.INVALID_PARAMETER.getCode(),"Inconsistent token state"));
+                ut.setBlocked(false);
+                return ut;
+            }).toList());
+        }
+
+    }
+
+    @Transactional
+    @PreAuthorize("hasAuthority('SCOPE_ADMIN')")
+    public void blockUsersTokens(String userId){
+        List<UserToken> usersTokens = findAllByUserId(userId).stream().map(token -> {
+            token.setBlocked(true);
+            return token;
+        }).toList();
+        if(!CollectionUtils.isEmpty(usersTokens))
+            userTokenRepository.saveAll(usersTokens);
+    }
+
+    @PreAuthorize("hasAuthority('SCOPE_ADMIN')")
+    public boolean checkDBIfTokenIsBlockedByJTI(String jti){
+        return userTokenRepository.findByJtiAndBlocked(jti, true).isPresent();
     }
 
     @Transactional
