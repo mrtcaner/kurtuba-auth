@@ -17,18 +17,17 @@ import io.jsonwebtoken.Jwts;
 import jakarta.annotation.PostConstruct;
 import org.jose4j.jwe.JsonWebEncryption;
 import org.jose4j.jwk.PublicJsonWebKey;
-import org.jose4j.keys.PbkdfKey;
+import org.jose4j.keys.AesKey;
 import org.jose4j.lang.JoseException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -164,7 +163,7 @@ public class TokenUtils {
                 JsonWebEncryption decryptingJwe = new JsonWebEncryption();
                 try {
                     decryptingJwe.setCompactSerialization(jwkEncrypted);
-                    decryptingJwe.setKey(new PbkdfKey(secret));
+                    decryptingJwe.setKey(new AesKey(Base64.getDecoder().decode(secret)));
                     orderedKeys.put(encryptedKeyJson.getAsJsonObject().get("order").getAsInt(), PublicJsonWebKey.Factory.newPublicJwk(decryptingJwe.getPayload()));
                 } catch (JoseException e) {
                     throw new RuntimeException(e);

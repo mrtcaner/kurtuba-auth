@@ -94,7 +94,7 @@
 		<dependency>
 			<groupId>org.bitbucket.b_c</groupId>
 			<artifactId>jose4j</artifactId>
-			<version>0.9.3</version><!-- Current keys are using  PBES2-HS256+A128KW which is blocked in later versions -->
+			<version>0.9.6</version><!-- Current keys are using  PBES2-HS256+A128KW which is blocked in later versions -->
 		</dependency>
 
 		<dependency>
