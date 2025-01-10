@@ -13,7 +13,8 @@ import static java.lang.annotation.ElementType.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = MobileNumberValidator.class)
 public @interface MobileNumber{
-    boolean notEmpty() default true;
+    boolean notBlank() default true;
+    boolean plusSignRequired() default true;
     String message() default "Invalid mobile number format";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};

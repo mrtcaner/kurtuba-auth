@@ -17,7 +17,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.EntityTransaction;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCrypt;
@@ -31,7 +31,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.kurtuba.auth.utils.Utils.generateRandomAlphanumericString;
 import static com.kurtuba.auth.utils.Utils.generateVerificationCode;
 
 @Service
@@ -128,7 +127,7 @@ public class UserService {
     }
 
     @Transactional
-    public void changePassword(@Valid PasswordChangeDto passwordChangeDto, @NotEmpty String userId) {
+    public void changePassword(@Valid PasswordChangeDto passwordChangeDto, @NotBlank String userId) {
         User user = userRepository.getUserById(userId).orElseThrow(() ->
                 new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST));
 
@@ -348,7 +347,7 @@ public class UserService {
         user.getUserSetting().setUser(user);
 
         //first save user and userSettings
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
         // and then save user roles
         user.setUserRoles(List.of(
@@ -361,10 +360,10 @@ public class UserService {
 
 
         UserMetaChange metaChange = UserMetaChange.builder()
-                .userId(user.getId())
+                .userId(savedUser.getId())
                 .metaOperationType(MetaOperationType.ACCOUNT_ACTIVATION)
                 .contactType(newUser.getPreferredVerificationContact())
-                .meta(newUser.getPreferredVerificationContact().equals(ContactType.EMAIL) ? user.getEmail() : user.getMobile())
+                .meta(newUser.getPreferredVerificationContact().equals(ContactType.EMAIL) ? savedUser.getEmail() : savedUser.getMobile())
                 .executed(false)
                 .createdDate(LocalDateTime.now())
                 .expirationDate(LocalDateTime.now().plusMinutes(activationCodeValidityMinutes))
@@ -375,21 +374,21 @@ public class UserService {
                         Base64.getEncoder().encodeToString(UUID.randomUUID().toString().getBytes()) : null)
                 .build();
 
-        userMetaChangeService.create(metaChange);
+        UserMetaChange savedMetaChange = userMetaChangeService.create(metaChange);
 
         // in case there are both email and mobile contacts, only one can be used to activate account.
         if (newUser.getPreferredVerificationContact().equals(ContactType.EMAIL)) {
             if (newUser.isVerificationByCode()) {
-                messageJobService.sendAccountActivationCodeMail(user.getEmail(), metaChange.getCode(), user.getUserSetting().getLocale().getLanguageCode());
+                messageJobService.sendAccountActivationCodeMail(savedUser.getEmail(), savedMetaChange.getCode(), savedUser.getUserSetting().getLocale().getLanguageCode());
             } else {
-                messageJobService.sendAccountActivationLinkMail(user.getEmail(), metaChange.getLinkParam(), user.getUserSetting().getLocale().getLanguageCode());
+                messageJobService.sendAccountActivationLinkMail(savedUser.getEmail(), savedMetaChange.getLinkParam(), savedUser.getUserSetting().getLocale().getLanguageCode());
             }
         } else {
             // todo implement send sms
             throw new UnsupportedOperationException("Feature incomplete. Contact assistance.");
         }
 
-        return metaChange.getId();
+        return savedMetaChange.getId();
     }
 
     @Transactional
@@ -530,7 +529,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserMetaChange requestResetPassword(@NotEmpty String emailMobile, boolean byCode) {
+    public UserMetaChange requestResetPassword(@NotBlank String emailMobile, boolean byCode) {
         User user = userRepository.getUserByEmailOrMobile(emailMobile).orElseThrow(() ->
                 new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST));
 
@@ -676,7 +675,7 @@ public class UserService {
     }
 
     @Transactional
-    public String sendAccountActivationMessage(@NotEmpty String emailMobile, boolean byCode) {
+    public String sendAccountActivationMessage(@NotBlank String emailMobile, boolean byCode) {
         if (emailMobile.contains("@")) {
             //email
             return sendAccountActivationMail(emailMobile, byCode);
@@ -693,7 +692,7 @@ public class UserService {
      * @return
      */
     @Transactional
-    public String sendAccountActivationMail(@NotEmpty String email, boolean byCode) {
+    public String sendAccountActivationMail(@NotBlank String email, boolean byCode) {
 
         User user = userRepository.getUserByEmail(email).orElseThrow(() ->
                 new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST));
@@ -736,7 +735,7 @@ public class UserService {
      * @return
      */
     @Transactional
-    public String sendAccountActivationSMS(@NotEmpty String mobile, boolean byCode) {
+    public String sendAccountActivationSMS(@NotBlank String mobile, boolean byCode) {
         throw new UnsupportedOperationException("Feature incomplete. Contact assistance.");
     }
 
@@ -788,7 +787,7 @@ public class UserService {
      * @return
      */
     @Transactional
-    public UserDto verifyEmailByCode(@NotEmpty String emailMobile, @NotEmpty String code) {
+    public UserDto verifyEmailByCode(@NotBlank String emailMobile, @NotBlank String code) {
         User user = userRepository.getUserByEmailOrMobile(emailMobile).orElseThrow(() ->
                 new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST));
 
@@ -802,7 +801,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserMetaChange verifyEmailByLink(@NotEmpty String linkParam) {
+    public UserMetaChange verifyEmailByLink(@NotBlank String linkParam) {
         UserMetaChange userMetaChange = userMetaChangeService.findByLinkParam(linkParam).orElseThrow(() ->
                 new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION));
         validateEmailChangeUserMetaChange(userMetaChange, null);

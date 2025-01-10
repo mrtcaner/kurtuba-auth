@@ -14,7 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import org.eclipse.jetty.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -65,7 +65,7 @@ public class RegistrationController {
             content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = Boolean.class))})
     @GetMapping("/registration/username/available/{username}")
-    public ResponseEntity<Boolean> isUsernameAvailable(@NotEmpty @PathVariable String username) {
+    public ResponseEntity<Boolean> isUsernameAvailable(@NotBlank @PathVariable String username) {
         return ResponseEntity.status(HttpStatusCode.valueOf(HttpStatus.OK_200)).body(userService.isUsernameAvailable(username));
     }
 
@@ -73,7 +73,7 @@ public class RegistrationController {
             content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = Boolean.class))})
     @GetMapping("/registration/email/available/{email}")
-    public ResponseEntity<Boolean> isEmailAvailable(@NotEmpty @Email(regexp = Utils.EMAIL_REGEX) @PathVariable String email) {
+    public ResponseEntity<Boolean> isEmailAvailable(@NotBlank @Email(regexp = Utils.EMAIL_REGEX) @PathVariable String email) {
         return ResponseEntity.status(HttpStatusCode.valueOf(HttpStatus.OK_200)).body(userService.isEmailAvailable(email));
     }
 
@@ -81,7 +81,7 @@ public class RegistrationController {
             content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = Boolean.class))})
     @GetMapping("/registration/mobile/available/{mobile}")
-    public ResponseEntity<Boolean> isMobileAvailable(@NotEmpty @PathVariable String mobile) {
+    public ResponseEntity<Boolean> isMobileAvailable(@NotBlank @PathVariable String mobile) {
         return ResponseEntity.status(HttpStatusCode.valueOf(HttpStatus.OK_200)).body(userService.isMobileAvailable(mobile));
     }
 
@@ -133,7 +133,7 @@ public class RegistrationController {
      * returns success/fail page
      */
     @GetMapping("/registration/activation/link/{linkParam}")
-    public ModelAndView activateAccountByLink(@NotEmpty @PathVariable String linkParam) {
+    public ModelAndView activateAccountByLink(@NotBlank @PathVariable String linkParam) {
         ModelAndView modelAndView = new ModelAndView();
         try {
             UserMetaChange umc = userService.activateAccountByLink(linkParam);

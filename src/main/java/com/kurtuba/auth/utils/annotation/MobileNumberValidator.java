@@ -9,22 +9,24 @@ import jakarta.validation.ConstraintValidatorContext;
 
 public class MobileNumberValidator implements ConstraintValidator<MobileNumber, String> {
 
-    boolean notEmpty;
+    boolean notBlank;
+    boolean plusSignRequired;
 
     @Override
     public void initialize(MobileNumber constraintAnnotation) {
         ConstraintValidator.super.initialize(constraintAnnotation);
-        this.notEmpty = constraintAnnotation.notEmpty();
+        this.notBlank = constraintAnnotation.notBlank();
+        this.plusSignRequired = constraintAnnotation.plusSignRequired();
     }
 
     @Override
     public boolean isValid(String mobileNumber, ConstraintValidatorContext context) {
 
-        if (notEmpty && (mobileNumber == null || mobileNumber.isEmpty())) {
+        if (notBlank && (mobileNumber == null || mobileNumber.isEmpty())) {
             return false;
         }
 
-        if (!notEmpty && (mobileNumber == null || mobileNumber.isEmpty())) {
+        if (!notBlank && (mobileNumber == null || mobileNumber.isEmpty())) {
             return true;
         }
 
@@ -32,7 +34,10 @@ public class MobileNumberValidator implements ConstraintValidator<MobileNumber, 
         PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance();
         try {
             Phonenumber.PhoneNumber mNumber = phoneNumberUtil.parse(mobileNumber,
-                    Phonenumber.PhoneNumber.CountryCodeSource.UNSPECIFIED.name());
+                    plusSignRequired ?
+                    Phonenumber.PhoneNumber.CountryCodeSource.FROM_NUMBER_WITH_PLUS_SIGN.name():
+                            Phonenumber.PhoneNumber.CountryCodeSource.UNSPECIFIED.name()
+                    );
             return phoneNumberUtil.isPossibleNumberForType(mNumber, PhoneNumberUtil.PhoneNumberType.MOBILE);
         } catch (NumberParseException e) {
             return false;

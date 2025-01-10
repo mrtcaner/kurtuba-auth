@@ -9,7 +9,7 @@ import com.kurtuba.auth.data.repository.MessageJobRepository;
 import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.error.exception.BusinessLogicException;
 import com.kurtuba.auth.utils.EmailUtils;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,7 +61,7 @@ public class MessageJobService {
     }
 
     @Transactional
-    public void sendAccountActivationCodeMail(@NotEmpty String recipient, @NotEmpty String verificationCode, String lang) {
+    public void sendAccountActivationCodeMail(@NotBlank String recipient, @NotBlank String verificationCode, String lang) {
 
         EmailVerificationMailDto verificationMailDto = EmailVerificationMailDto.builder()
                 .title(localizationMessageService.findByLanguageCodeAndKey(lang, "mail.account.activation.content.title").getMessage())
@@ -142,7 +142,7 @@ public class MessageJobService {
     }
 
     @Transactional
-    public void sendPasswordResetCodeMail(@NotEmpty String recipient, @NotEmpty String resetCode, String lang) {
+    public void sendPasswordResetCodeMail(@NotBlank String recipient, @NotBlank String resetCode, String lang) {
 
         try {
             File htmlFile = ResourceUtils.getFile("classpath:templates/mailPasswordReset.html");

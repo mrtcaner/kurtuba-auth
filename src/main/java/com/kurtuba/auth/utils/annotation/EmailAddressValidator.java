@@ -9,22 +9,22 @@ import java.util.regex.Pattern;
 
 public class EmailAddressValidator implements ConstraintValidator<EmailAddress, String> {
 
-    boolean notEmpty;
+    boolean notBlank;
 
     @Override
     public void initialize(EmailAddress constraintAnnotation) {
         ConstraintValidator.super.initialize(constraintAnnotation);
-        this.notEmpty = constraintAnnotation.notEmpty();
+        this.notBlank = constraintAnnotation.notBlank();
     }
 
     @Override
     public boolean isValid(String emailAddress, ConstraintValidatorContext context) {
 
-        if (notEmpty && (emailAddress == null || emailAddress.isEmpty())) {
+        if (notBlank && (emailAddress == null || emailAddress.isEmpty())) {
             return false;
         }
 
-        if (!notEmpty && (emailAddress == null || emailAddress.isEmpty())) {
+        if (!notBlank && (emailAddress == null || emailAddress.isEmpty())) {
             return true;
         }
 

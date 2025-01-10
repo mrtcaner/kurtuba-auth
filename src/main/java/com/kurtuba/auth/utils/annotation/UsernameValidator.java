@@ -9,22 +9,22 @@ import java.util.regex.Pattern;
 
 public class UsernameValidator implements ConstraintValidator<UserName, String> {
 
-    boolean notEmpty;
+    boolean notBlank;
 
     @Override
     public void initialize(UserName constraintAnnotation) {
         ConstraintValidator.super.initialize(constraintAnnotation);
-        this.notEmpty = constraintAnnotation.notEmpty();
+        this.notBlank = constraintAnnotation.notBlank();
     }
 
     @Override
     public boolean isValid(String userName, ConstraintValidatorContext context) {
 
-        if (notEmpty && (userName == null || userName.isEmpty())) {
+        if (notBlank && (userName == null || userName.isEmpty())) {
             return false;
         }
 
-        if (!notEmpty && (userName == null || userName.isEmpty())) {
+        if (!notBlank && (userName == null || userName.isEmpty())) {
             return true;
         }
 

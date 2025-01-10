@@ -47,9 +47,9 @@ public class LocalizationMessageService {
         return localizationMessageRepository.findByLanguageCodeAndKey(languageCode, key);
     }
 
-    @Cacheable(value = "localization", key = "#languageCode + '_' + #key")
-    public LocalizationMessage findByLanguageCodeAndKey(String languageCode, String key) {
-        return localizationMessageRepository.findByLanguageCodeAndKey(languageCode, key).orElseThrow(() ->
+    @Cacheable(value = "localization", key = "#languageCode + '_' + #countryCode")
+    public LocalizationMessage findByLanguageCodeAndKey(String languageCode, String countryCode) {
+        return localizationMessageRepository.findByLanguageCodeAndKey(languageCode, countryCode).orElseThrow(() ->
                 new BusinessLogicException(ErrorEnum.LOCALIZATION_INVALID_RESOURCE_PARAMETER));
     }
 

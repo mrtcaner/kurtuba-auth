@@ -2,7 +2,7 @@ package com.kurtuba.auth.data.model;
 
 import com.kurtuba.auth.utils.StringListConverter;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,22 +25,22 @@ public class UserToken {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @NotEmpty
+    @NotBlank
     private String userId;
 
-    @NotEmpty
+    @NotBlank
     private String refreshToken;
 
     @NotNull
     private LocalDateTime refreshTokenExp;
 
-    @NotEmpty
+    @NotBlank
     private String jti;
 
-    @NotEmpty
+    @NotBlank
     private String clientId;
 
-    @NotEmpty
+    @NotBlank
     @Convert(converter = StringListConverter.class)
     private List<String> auds;
 
