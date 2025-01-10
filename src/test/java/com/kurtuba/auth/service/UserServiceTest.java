@@ -27,8 +27,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
@@ -146,21 +145,21 @@ public class UserServiceTest {
 
             when(userRepository.save(any(User.class))).then(invocationOnMock -> {
                 User usr = invocationOnMock.getArgument(0);
-                assertTrue(usr.getName().equals(savedUser.getName()));
-                assertTrue(usr.getSurname().equals(savedUser.getSurname()));
-                assertTrue(usr.getUsername().equals(savedUser.getUsername()));
-                assertTrue(usr.getEmail().equals(savedUser.getEmail()));
-                assertTrue(usr.isEmailVerified() == (savedUser.isEmailVerified()));
-                assertTrue(usr.getMobile().equals(savedUser.getMobile()));
-                assertTrue(usr.isMobileVerified() == (savedUser.isMobileVerified()));
-                assertTrue(!new BCryptPasswordEncoder().matches(usr.getPassword(), savedUser.getPassword()));
-                assertTrue(usr.getAuthProvider().equals(savedUser.getAuthProvider()));
-                assertTrue(usr.isActivated() == (savedUser.isActivated()));
-                assertTrue(usr.isLocked() == (savedUser.isLocked()));
-                assertTrue(usr.getFailedLoginCount() == (savedUser.getFailedLoginCount()));
-                assertTrue(usr.isShowCaptcha() == (savedUser.isShowCaptcha()));
-                assertTrue(usr.getBirthdate() == (savedUser.getBirthdate()));
-                assertTrue(usr.getCreatedDate() != null);
+                assertEquals(usr.getName(), savedUser.getName());
+                assertEquals(usr.getSurname(), savedUser.getSurname());
+                assertEquals(usr.getUsername(), savedUser.getUsername());
+                assertEquals(usr.getEmail(), savedUser.getEmail());
+                assertEquals(usr.isEmailVerified(), (savedUser.isEmailVerified()));
+                assertEquals(usr.getMobile(), savedUser.getMobile());
+                assertEquals(usr.isMobileVerified(), (savedUser.isMobileVerified()));
+                assertFalse(new BCryptPasswordEncoder().matches(usr.getPassword(), savedUser.getPassword()));
+                assertEquals(usr.getAuthProvider(), savedUser.getAuthProvider());
+                assertEquals(usr.isActivated(), (savedUser.isActivated()));
+                assertEquals(usr.isLocked(), (savedUser.isLocked()));
+                assertEquals(usr.getFailedLoginCount(), (savedUser.getFailedLoginCount()));
+                assertEquals(usr.isShowCaptcha(), (savedUser.isShowCaptcha()));
+                assertSame(usr.getBirthdate(), (savedUser.getBirthdate()));
+                assertNotNull(usr.getCreatedDate());
                 //todo: check also
 
                 return savedUser;
@@ -195,7 +194,7 @@ public class UserServiceTest {
             doNothing().when(messageJobService).sendAccountActivationCodeMail(anyString(), anyString(), anyString());
             //default registrationDto is set to account activation by email using code
             String metaChangeId = userService.register(registrationDto);
-            assertTrue(metaChangeId.equals(emailActivationCodeUserMetaChange.getId()));
+            assertEquals(metaChangeId, emailActivationCodeUserMetaChange.getId());
         }
 
         @Test
@@ -204,7 +203,7 @@ public class UserServiceTest {
             //default registrationDto is set to account activation by email using code
             registrationDto.setVerificationByCode(false);
             String metaChangeId = userService.register(registrationDto);
-            assertTrue(metaChangeId.equals(emailActivationLinkUserMetaChange.getId()));
+            assertEquals(metaChangeId, emailActivationLinkUserMetaChange.getId());
         }
     }
 
@@ -233,8 +232,8 @@ public class UserServiceTest {
         public void createUser_whenGivenMissingEmailAndMobile_thenThrowException() {
             registrationDto.setEmail("");
             registrationDto.setMobile("");
-            Throwable exception = assertThrows(BusinessLogicException.class, () -> userService.register(registrationDto));
-            assertTrue(((BusinessLogicException)exception).getErrorCode() == ErrorEnum.USER_CONTACT_REQUIRED.getCode());
+            BusinessLogicException exception = assertThrows(BusinessLogicException.class, () -> userService.register(registrationDto));
+            assertEquals(exception.getErrorCode(), (int) ErrorEnum.USER_CONTACT_REQUIRED.getCode());
 
         }
     }
