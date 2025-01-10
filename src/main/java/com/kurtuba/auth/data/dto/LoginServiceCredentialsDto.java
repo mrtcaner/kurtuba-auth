@@ -1,6 +1,6 @@
 package com.kurtuba.auth.data.dto;
 
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,9 +11,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoginServiceCredentialsDto {
-    @NotEmpty
+    @NotBlank
     String clientId;
 
-    @NotEmpty
+    @NotBlank
     String clientSecret;
 }

@@ -8,7 +8,7 @@ import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.error.exception.BusinessLogicException;
 import com.kurtuba.auth.service.UserService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import org.eclipse.jetty.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -37,7 +37,7 @@ public class UserController {
      */
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('SCOPE_SERVICE')")
-    public ResponseEntity getUserById(@PathVariable @NotEmpty String id) {
+    public ResponseEntity getUserById(@PathVariable @NotBlank String id) {
         return ResponseEntity.status(HttpStatus.OK_200).body(UserDto.fromUser(userService.getUserById(id).orElseThrow(
                 () -> new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST))));
     }
@@ -275,7 +275,7 @@ public class UserController {
      * @return genericResult.html
      */
     @GetMapping("/email/verification/link/{linkParam}")
-    public ModelAndView verifyEmailByLink(@NotEmpty @PathVariable String linkParam) {
+    public ModelAndView verifyEmailByLink(@NotBlank @PathVariable String linkParam) {
         ModelAndView modelAndView = new ModelAndView();
         try {
             userService.verifyEmailByLink(linkParam);

@@ -3,7 +3,7 @@ package com.kurtuba.auth.data.model;
 import com.kurtuba.auth.data.enums.ContactType;
 import com.kurtuba.auth.data.enums.MessageJobStateType;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,16 +26,16 @@ public class MessageJob {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @NotEmpty
+    @NotBlank
     String sender;
 
-    @NotEmpty
+    @NotBlank
     String recipient;
 
-    @NotEmpty
+    @NotBlank
     String subject;
 
-    @NotEmpty
+    @NotBlank
     @Column(length = 10485760)
     String message;
 

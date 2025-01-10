@@ -4,7 +4,7 @@ package com.kurtuba.auth.data.model;
 import com.kurtuba.auth.data.enums.RegisteredClientType;
 import com.kurtuba.auth.utils.StringListConverter;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,11 +26,11 @@ public class RegisteredClient {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;// good old unique id. can be different in any environment
 
-    @NotEmpty
+    @NotBlank
     @Column(unique=true)
     private String clientId;//this is what client(mobile-web app) receives. must be same in dev/test/stage/prod
 
-    @NotEmpty
+    @NotBlank
     @Column(unique=true)
     private String clientName;//this is human-readable name of the client
 

@@ -1,13 +1,12 @@
 package com.kurtuba.auth.data.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.kurtuba.auth.data.enums.AuthProviderType;
 import com.kurtuba.auth.utils.annotation.EmailAddress;
 import com.kurtuba.auth.utils.annotation.MobileNumber;
 import com.kurtuba.auth.utils.annotation.UserName;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -30,29 +29,29 @@ public class User implements Serializable {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @NotEmpty
-    @Size(min = 2, max = 100, message = "Name must be between 2-100 characters.")
+    @NotBlank
+    @Size(min = 1, max = 100, message = "Name must be between 1-100 characters.")
     private String name;
 
     @Nullable//Can be null for different providers but not for kurtuba
     private String surname;
 
     @Nullable//can be created any time
-    @UserName(notEmpty = false)
+    @UserName(notBlank = false)
     private String username;
 
     @Nullable
     private LocalDateTime birthdate;
 
     @Nullable
-    @MobileNumber(notEmpty = false)
+    @MobileNumber(notBlank = false)
     private String mobile;
 
     @Nullable
-    @EmailAddress(notEmpty = false)
+    @EmailAddress(notBlank = false)
     private String email;
 
-    @NotEmpty
+    @NotBlank
     private String password;
 
     @OneToOne(fetch = FetchType.EAGER, mappedBy = "user", cascade = CascadeType.ALL)

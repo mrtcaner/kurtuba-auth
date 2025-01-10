@@ -1,7 +1,7 @@
 package com.kurtuba.auth.data.dto;
 
 import com.kurtuba.auth.data.enums.AuthProviderType;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,8 +16,8 @@ public class RegistrationOtherProviderDto {
 
     @NotNull
     AuthProviderType provider;
-    @NotEmpty
+    @NotBlank
     String clientId;
-    @NotEmpty
+    @NotBlank
     String token;
 }

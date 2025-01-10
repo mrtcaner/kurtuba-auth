@@ -2,7 +2,7 @@ package com.kurtuba.auth.data.dto;
 
 
 import com.kurtuba.auth.data.model.LocalizationMessage;
-import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,13 +16,13 @@ public class LocalizationMessageDto {
 
     private String id;
 
-    @NotEmpty
+    @NotBlank
     private String languageCode;
 
-    @NotEmpty
+    @NotBlank
     private String key;
 
-    @NotEmpty
+    @NotBlank
     private String message;
 
     public static LocalizationMessageDto fromLocalization(LocalizationMessage localizationMessage){

@@ -13,7 +13,7 @@ import static java.lang.annotation.ElementType.*;
 @Retention(RetentionPolicy.RUNTIME)
 @Constraint(validatedBy = UsernameValidator.class)
 public @interface UserName {
-    boolean notEmpty() default true;
+    boolean notBlank() default true;
     String message() default "Invalid username format";
     Class<?>[] groups() default {};
     Class<? extends Payload>[] payload() default {};
