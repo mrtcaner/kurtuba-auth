@@ -98,8 +98,8 @@ public class LoginController {
         // return token json
         return ResponseEntity.status(HttpStatus.OK)
                 .body(TokensResponseDto.builder()
-                        .accessToken(tokenUtils.generateToken(client.getId(), Set.of(client.getClientName()),
-                                client.getScopes().stream().collect(Collectors.toSet()),
+                        .accessToken(tokenUtils.generateToken(client.getId(), client.getAuds(),
+                                client.getScopes(),
                                 Duration.ofMinutes(client.getAccessTokenTtlMinutes())))
                         .build());
 

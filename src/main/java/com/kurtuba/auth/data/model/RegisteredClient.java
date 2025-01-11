@@ -2,7 +2,7 @@ package com.kurtuba.auth.data.model;
 
 
 import com.kurtuba.auth.data.enums.RegisteredClientType;
-import com.kurtuba.auth.utils.StringListConverter;
+import com.kurtuba.auth.utils.StringSetConverter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -12,7 +12,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Set;
 
 @Entity
 @Data
@@ -28,7 +28,7 @@ public class RegisteredClient {
 
     @NotBlank
     @Column(unique=true)
-    private String clientId;//this is what client(mobile-web app) receives. must be same in dev/test/stage/prod
+    private String clientId;//this is what client(mobile-web app etc.) receives
 
     @NotBlank
     @Column(unique=true)
@@ -40,16 +40,19 @@ public class RegisteredClient {
     @Enumerated(EnumType.STRING)
     private RegisteredClientType clientType;
 
+    @Convert(converter = StringSetConverter.class)
+    private Set<String> auds; // comma seperated strings
+
     private boolean scopeEnabled;
 
-    @Convert(converter = StringListConverter.class)
-    private List<String> scopes;
+    @Convert(converter = StringSetConverter.class)
+    private Set<String> scopes; // comma seperated strings
 
-    @Convert(converter = StringListConverter.class)
-    private List<String> redirectUrls;
+    @Convert(converter = StringSetConverter.class)
+    private Set<String> redirectUrls; // comma seperated strings
 
-    @Convert(converter = StringListConverter.class)
-    private List<String> postLogoutRedirectUrls;
+    @Convert(converter = StringSetConverter.class)
+    private Set<String> postLogoutRedirectUrls; // comma seperated strings
 
     private int accessTokenTtlMinutes;
 

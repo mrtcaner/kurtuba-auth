@@ -156,7 +156,7 @@ public class UserTokenService {
         }
 
         return createAndSaveTokens(result.getClaims().getSubject(), result.getRegisteredClient().getClientId(),
-                Set.of(result.getRegisteredClient().getClientName()), roles,
+                result.getRegisteredClient().getAuds(), roles,
                 accessTokenTtlMinutes, refreshTokenTtlMinutes);
     }
 

@@ -249,7 +249,7 @@ public class UserService {
             }
 
             //create token(s)
-            return userTokenService.createAndSaveTokens(user.getId(), client.getClientId(), Set.of(client.getClientName()),
+            return userTokenService.createAndSaveTokens(user.getId(), client.getClientId(), client.getAuds(),
                     roles, accessTokenValidity, refreshTokenValidity);
 
         }
