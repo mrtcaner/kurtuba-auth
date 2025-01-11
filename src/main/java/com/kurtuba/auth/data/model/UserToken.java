@@ -3,6 +3,7 @@ package com.kurtuba.auth.data.model;
 import com.kurtuba.auth.utils.StringListConverter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -40,7 +41,7 @@ public class UserToken {
     @NotBlank
     private String clientId;
 
-    @NotBlank
+    @NotEmpty
     @Convert(converter = StringListConverter.class)
     private List<String> auds;
 

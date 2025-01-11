@@ -15,9 +15,8 @@ import io.jsonwebtoken.io.Encoders;
 import org.jose4j.jwe.ContentEncryptionAlgorithmIdentifiers;
 import org.jose4j.jwe.JsonWebEncryption;
 import org.jose4j.jwe.KeyManagementAlgorithmIdentifiers;
-import org.jose4j.jwk.JsonWebKey;
-import org.jose4j.jwk.PublicJsonWebKey;
-import org.jose4j.jwk.RsaJwkGenerator;
+import org.jose4j.jwk.*;
+import org.jose4j.keys.EllipticCurves;
 import org.jose4j.keys.PbkdfKey;
 import org.jose4j.lang.JoseException;
 
@@ -48,7 +47,7 @@ class JwkGenerator {
         str.put(0,"zero");
         str.keySet().stream().sorted().map(order -> str.get(order)).toList().stream().forEach(s -> System.out.println(s));*/
 
-        String keys = createJwk();
+        createJwe();
         //System.out.println("keys:" + keys);
         //decrypJwk("eyJhbGciOiJQQkVTMi1IUzI1NitBMTI4S1ciLCJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwicDJjIjo2NTUzNiwicDJzIjoiWnpHZWp5NWpnbVBGcEpZNSJ9.q4toDIxT62HvPudSLxpE5FwqxX91H5uPLltngPz6V1rZGCj1Pi0JWw.VhRExHSCPY7gCjSYsmJUuA.NdbQtsPp3fdQYtM5nFGX5hNkOnFiBaAPcrO5lExxugWmX3_xyPL7lcRC3abBFQeRR9niwISqQFQx7LBgeQ5m_2A8w-SccRTRDVjO4acqjnM1qi6NyCmIn0za5VbjW9gmQb2V_-HilZE40MYPczMpjkhbfWxJyagMlLmWHamPN9HG_KqBjF6RiGkRZiOUqkOJ860rl7QBcps-CKpX_X-yHUU3tRD6HyXXtIw63DJ5W6MDHAmeVzVjuPCgZXDt7ZJT2rP6Wo5F0ajJF21fot2UF0lzpZk6RJknV99-5ESk91GfRJ_DEVbe9fK3ltopapvpjs1NPjifmkTI4XhGvIQhQGoG8CZQjJhazysx7A-mJc-kLpVVELocSpUpIAfiQYvytjG5qj2XU0ALQtaGPXma8u5r38LnDBJTTW-OrLJVa9KuYZOvmtCmkWDZ8FPs0R2LlZIGrR6oKgQSUZO-rDECxwxKDDl5rd50VqbkcLYS5SFcH5VW3nfHptSUfKTKGBB7l8jTV2jxmSYFvVByCarkpuGC-mGtS08IStHyGJRLCfK9DKdVJHCR7qRykDB8xZdTGlBTAakHGiuoMeDzc8clvAFuDXJiOKC4mcrwTbB2Iw7GnaSiSxJH3CvoO_84hBbkTHvgW76WebNJhtIMMTs7kVl3dZ0aESriztH_fZzc3HHFvRaOu-R0ilNH3zWvXivCAFR-l-zsjSMKhVm4SmS9x4r5hi1bHnRZ-JPcokEwO932h1AvSakq_8bZTKAE1vnrdLtGzlFFwiqfsGloT-PI8CExKRpolFyqO5isOIztP0O9bfwK2FZ9Wukdu9jk-Btn2_qp8xct6YzzGqir65Wv_qxFxz32B2KFGBDHF5njYWvOi7Z_8WOPM3BVRrlbIvZKrTWd386RPMWtrGknK1Kt7jDen_F8Ez0inrXPn5-TrUD5-ZfNb29l1TmllLB8j5XvsjdO1lsRE36pAgjGFpYBrt2tUcNRx3_-r26z-v2FcXsY6R5Jh9qtdxxmeFyrHPr8fSKGjXbgNFpydlnzbGEjvKdlBG9BGBBSsjNNbm5L_G5EZeJ7kZmlW2OT9AWH8KxceozbiTEpSERHbJu_GqUZCZKkcNIbp7soCuHqOhgwUA5uhVyoTeWQiAse93bL0AujEM3nioQzxEbpW1-JO5-u5GuPIgGuE3go1cjkc9ZaNLmDnBLH-ONcGIun4mfkcNM-zig-_GqZz7_AjkhBv25gaT9gSdQEC1IZ6dAAsiIWc2_9H2Xg_r0GyN9ud_tuvWfz3ifRq079b8cpiHth1JEGPcC5K42zR7B81dqnKlGZFS-MZnT10PtsAQXrTKoIyngdokQPrt8k_qRA46kNwF9Hi5KG9CvtuaqqabycRUXmBK11iicgKmhoLydhxAdx1TMxCH1vWtvTlCtjRo4mQQY5_zDnJ9jDS68iNsSSu6DeP-L5TvXTMTxzrt1O1CQQNqSjF8QImA8q_uNM5Z27VhICA-HYsuCnnl2E4k0LGajpaJ_yqPtgCtgcrhcyrg4MuUgEeQowZ6YAiEJ3xU3e3Z4cufNZpzhDaTS2UMZ8JzyI7gWYHUGQylHKOb05kbt9PFwHkzopP810LqcqsYtxF7EngLl5uDbpj4bPqiINdTFnigOsbrYanJeDMyCwQ-GvW07xN8UJUXOOiCXMNtyDnnHAhaDOL5iMWbpP7sxlSjYpVmL8HRUojGuXm-ZmFm6aof9hQwK-3icvUMy9OOn7YH8gQzvcDbvSWKtUDrql84P3xTJChIqy1DuHyRzoT8DfaNrEDJuPQjVgF0XkALPZ7pbGZl8a9M5QrdkvI_XWD6KFuqDIoi0M_4w3A04z4QJEBJjkYRoMJqtXFc4d5Ul1BAP37R_S6sGydK0IijhWcMbegf4CMMtgbN9OeYR7vqKLzx7ak3IE2JlPaY6apAxB2BWKuuXiKQVjuWSxzN6mr0tPJFCgP_8iCR2a3jNwjgD4oPL74iTQ5C9vrPSTCmnpQg83xqiN_dT7jlyPPM4BSxd5XCDh62dPMRciRfz_Sym9uvAQggRY0Pd0acg0YfH-xWLAnNoFGux8ozV2v4uNEbTx41jqxztk7iLw-q2I_0JyUG2hVG_oqbI6Fcz1yc0TIk30QnDkNRQ0LFC9qYj-ZxxpUL0OEiLxpgu1t7i6zuXY8Qgx2yMcZHsHqRGuV-KMNJuIdx2bxcOcD0YXZxQVYo1A72g.OqwG58TaL-1Qn5p9Ho-lNA");
         //rsaJwk();
@@ -144,21 +143,69 @@ class JwkGenerator {
     }
 
 
-    public static String createJwk() throws JoseException, NoSuchAlgorithmException, InvalidKeySpecException {
-        Key key = getPasswordBasedKey("AES",256,"M0asv8end09".toCharArray());
-        //SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-        String secretString = Encoders.BASE64.encode(key.getEncoded());
-        System.out.println("Secret key: " + secretString);
+    /**
+     * Creates jwk based on ES256
+     * @return
+     * @throws JoseException
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeySpecException
+     */
+    public static String createEsJwk() throws JoseException, NoSuchAlgorithmException, InvalidKeySpecException {
+
+        /*JsonWebKey rsaJsonWebKey = RsaJwkGenerator.generateJwk(2048);
+        rsaJsonWebKey.setKeyId(UUID.randomUUID().toString());
+        String jwkjson = rsaJsonWebKey.toJson(JsonWebKey.OutputControlLevel.INCLUDE_PRIVATE);*/
+
+        EllipticCurveJsonWebKey ellipticCurveJsonWebKey = EcJwkGenerator.generateJwk(EllipticCurves.P256);
+        ellipticCurveJsonWebKey.setKeyId(UUID.randomUUID().toString());
+        String jwkJson = ellipticCurveJsonWebKey.toJson(JsonWebKey.OutputControlLevel.INCLUDE_PRIVATE);
+        System.out.println("ES-jwkJson:" + jwkJson);
+
+        return jwkJson;
+    }
+
+    /**
+     * Creates jwk based on RSA256
+     * @return
+     * @throws JoseException
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeySpecException
+     */
+    public static String createRsaJwk() throws JoseException, NoSuchAlgorithmException, InvalidKeySpecException {
 
         JsonWebKey rsaJsonWebKey = RsaJwkGenerator.generateJwk(2048);
         rsaJsonWebKey.setKeyId(UUID.randomUUID().toString());
-        String jwkjson = rsaJsonWebKey.toJson(JsonWebKey.OutputControlLevel.INCLUDE_PRIVATE);
+        String jwkJson = rsaJsonWebKey.toJson(JsonWebKey.OutputControlLevel.INCLUDE_PRIVATE);
+        System.out.println("RSA-jwkJson:" + jwkJson);
+        return jwkJson;
+    }
+
+    /**
+     * Generates a jwk for signing JWT then creates a secret key and encrypts it using AES256 for safe storage
+     *
+     * @return
+     * @throws JoseException
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeySpecException
+     */
+    public static String createJwe() throws JoseException, NoSuchAlgorithmException, InvalidKeySpecException {
+        // generate signing key for jwt
+        // this key will be used to sign tokens
+        String jwkJson = createRsaJwk();
+
+        // generate secret key for jwe
+        // this secret will be used to open the encrypted jwkJson
+        Key key = getPasswordBasedKey("AES",256,"M0asv8end09".toCharArray());
+        String secretString = Encoders.BASE64.encode(key.getEncoded());
+        System.out.println("Secret key: " + secretString);
+
+        //create encryption for jwkJson
         JsonWebEncryption encryptingJwe = new JsonWebEncryption();
         encryptingJwe.setAlgorithmHeaderValue(KeyManagementAlgorithmIdentifiers.A256GCMKW);
         encryptingJwe.setEncryptionMethodHeaderParameter(ContentEncryptionAlgorithmIdentifiers.AES_256_GCM);
         encryptingJwe.setKey(key);
-        encryptingJwe.setPayload(jwkjson);
-        System.out.println("Encrypted Payload:" + jwkjson);
+        encryptingJwe.setPayload(jwkJson);
+        System.out.println("Encrypted Payload:" + jwkJson);
         String jweEncryptedJwk = encryptingJwe.getCompactSerialization();
         System.out.println("jweEncryptedJwk:" + jweEncryptedJwk);
         return jweEncryptedJwk;

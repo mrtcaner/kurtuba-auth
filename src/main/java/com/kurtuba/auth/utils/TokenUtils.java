@@ -36,10 +36,10 @@ import java.util.*;
 @Component
 public class TokenUtils {
 
-    @Value("${kurtuba.rsa-jwk.secrets}")
-    private String rsaJwkSecrets;
-    @Value("classpath:rsa-jwk.json")
-    Resource rsaJwkFile;
+    @Value("${kurtuba.jwk.keys}")
+    private String jwkKeys;
+    @Value("classpath:jwk.json")
+    Resource jwkFile;
     @Value("${auth.server.issuer-url}")
     private String authServerIssuerUrl;
 
@@ -145,20 +145,20 @@ public class TokenUtils {
     }
 
     /**
-     * Decrypts keys in rsa-jwk.json using secrets in properties.yaml
-     * Returns the keys sorted(descending) according to "order" property in rsa-jwk.json file
+     * Decrypts keys in jwk.json using keys in properties.yaml
+     * Returns the keys sorted(descending) according to "order" property in jwk.json file
      *
      * @return
      */
     public List<PublicJsonWebKey> decryptJwk() {
         try {
-            String rsaJwkContents = rsaJwkFile.getContentAsString(StandardCharsets.UTF_8);
-            JsonObject rsaJwkJson = JsonParser.parseString(rsaJwkContents).getAsJsonObject();
-            JsonArray encryptedKeys = rsaJwkJson.get("keys").getAsJsonArray();
-            JsonObject secretsJson = JsonParser.parseString(rsaJwkSecrets).getAsJsonObject();
+            String jwkContents = jwkFile.getContentAsString(StandardCharsets.UTF_8);
+            JsonObject jwkJson = JsonParser.parseString(jwkContents).getAsJsonObject();
+            JsonArray encryptedKeys = jwkJson.get("keys").getAsJsonArray();
+            JsonObject keysJson = JsonParser.parseString(jwkKeys).getAsJsonObject();
             Map<Integer, PublicJsonWebKey> orderedKeys = new HashMap<>();
             encryptedKeys.asList().stream().forEach(encryptedKeyJson -> {
-                String secret = secretsJson.get(encryptedKeyJson.getAsJsonObject().get("id").getAsString()).getAsString().toString();
+                String secret = keysJson.get(encryptedKeyJson.getAsJsonObject().get("id").getAsString()).getAsString().toString();
                 String jwkEncrypted = encryptedKeyJson.getAsJsonObject().get("encryptedKey").getAsString();
                 JsonWebEncryption decryptingJwe = new JsonWebEncryption();
                 try {

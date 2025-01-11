@@ -51,9 +51,9 @@ management:
         include: health, info, env
 
 kurtuba:
-  rsa-jwk:
-    file: "rsa-jwk.json"
-    secrets: '{"32abb5cf-a1fb-4cdd-9af7-fe517a0bda47": "pkBJlIfLcEW0tvIutbZjsjwBYOZ2DkRw2Hiy5S+m+uI=", "f5a7e70c-fb73-42ab-b217-841ea4e5d5b1": "A5kZEy3jC4ChSTtbq92AsARDrqslb+J7WmWwkMevhds="}'
+  jwk:
+    file: "jwk.json"
+    keys: '{"32abb5cf-a1fb-4cdd-9af7-fe517a0bda47": "pkBJlIfLcEW0tvIutbZjsjwBYOZ2DkRw2Hiy5S+m+uI=", "f5a7e70c-fb73-42ab-b217-841ea4e5d5b1": "A5kZEy3jC4ChSTtbq92AsARDrqslb+J7WmWwkMevhds="}'
   meta-change:
     max-try-count: 3
     validity:
