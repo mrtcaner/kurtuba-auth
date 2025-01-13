@@ -31,27 +31,27 @@ public class TokenManagementController {
 
     @PutMapping("/token/blocked")
     @PreAuthorize("hasAuthority('SCOPE_ADMIN')")
-    public ResponseEntity<List<String>> unblockTokens(@Valid @RequestBody TokenBlockDto tokenBlockDto) {
-        userTokenService.changeTokenBlockByJTI(tokenBlockDto.getTokenIds(), tokenBlockDto.isBlock());
+    public ResponseEntity<List<String>> blockTokens(@Valid @RequestBody TokenBlockDto tokenBlockDto) {
+        userTokenService.changeTokenBlockByJTI(tokenBlockDto.getTokenIds(), true);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
-    @PutMapping("/token/user/blocked/{userId}")
+    @PutMapping("/token/blocked/user/{userId}")
     @PreAuthorize("hasAuthority('SCOPE_ADMIN')")
     public ResponseEntity<List<String>> blockUsersTokens(@PathVariable @NotBlank String userId) {
         userTokenService.blockUsersTokens(userId);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
 
-    @GetMapping("/token/user/blocked/{userId}")
+    @GetMapping("/token/blocked/user/{userId}")
     @PreAuthorize("hasAuthority('SCOPE_ADMIN')")
     public ResponseEntity<List<UserToken>> getUsersBlockedTokens(@PathVariable @NotBlank String userId) {
         return ResponseEntity.status(HttpStatus.OK).body(userTokenService.findAllByUserIdAndBlocked(userId, true));
     }
 
-    @GetMapping("/token/blocked/{jti}")
+    @GetMapping("/token/blocked/jti/{jti}")
     @PreAuthorize("hasAuthority('SCOPE_ADMIN')")
-    public ResponseEntity getBlockedToken(@PathVariable @NotBlank String jti) {
+    public ResponseEntity checkDBIfTokenIsBlockedByJTI(@PathVariable @NotBlank String jti) {
         return ResponseEntity.status(HttpStatus.OK).body(userTokenService.checkDBIfTokenIsBlockedByJTI(jti));
     }
 

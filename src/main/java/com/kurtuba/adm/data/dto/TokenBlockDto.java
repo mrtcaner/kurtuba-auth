@@ -16,7 +16,4 @@ public class TokenBlockDto {
 
     @NotEmpty
     List<String> tokenIds;
-
-    boolean block;
-
 }

@@ -44,7 +44,7 @@ public class RefreshTokenController {
      * @param tokenRefreshRequestDto
      * @return
      */
-    @PostMapping("/token/refresh")
+    @PostMapping("/token")
     public ResponseEntity refreshTokens(@Valid @RequestBody TokenRefreshRequestDto tokenRefreshRequestDto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(userTokenService.refreshUserTokens(tokenRefreshRequestDto));
@@ -57,7 +57,7 @@ public class RefreshTokenController {
      * @param request
      * @return
      */
-    @PostMapping("/web/token/refresh")
+    @PostMapping("/web/token")
     public ResponseEntity refreshWebClientWithCookieTokens(@Valid @RequestBody TokenRefreshWebRequestDto tokenRefreshWebRequestDto,
                                                  HttpServletRequest request) {
         // find the jwt cookie

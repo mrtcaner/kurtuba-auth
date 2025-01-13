@@ -56,7 +56,7 @@ public class LoginController {
         }
         //throws exception if authentication fails
         //no exception means successful authentication. Generate token and return
-        TokensResponseDto tokenDto = loginService.authenticateAndGetTokens(loginCredentials.getEmailUsername(),
+        TokensResponseDto tokenDto = loginService.authenticateAndGetTokens(loginCredentials.getEmailMobile(),
                 loginCredentials.getPassword(), loginCredentials.getClientId(), loginCredentials.getClientSecret());
 
         RegisteredClient client = registeredClientRepository.findByClientId(loginCredentials.getClientId())
