@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
 @RestController
-@RequestMapping("auth")
+@RequestMapping("registration")
 public class RegistrationController {
 
     final UserService userService;
@@ -42,7 +42,7 @@ public class RegistrationController {
         this.loginService = loginService;
     }
 
-    @PostMapping("/registration")
+    @PostMapping("/")
     @ApiResponse(responseCode = "201", description = "User created successfully",
             content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = RegistrationResponseDto.class))})
@@ -58,7 +58,7 @@ public class RegistrationController {
     @ApiResponse(responseCode = "201", description = "User created successfully",
             content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = TokensResponseDto.class))})
-    @PostMapping("/registration/other-provider")
+    @PostMapping("/other-provider")
     public ResponseEntity<TokensResponseDto> registerViaAnotherProvider(@Valid @RequestBody RegistrationOtherProviderDto newUser) {
         RegistrationDto dto = registrationService.registerByAnotherProvider(newUser);
         TokensResponseDto tokenResponseDto = loginService.authenticateAndGetTokens(dto.getEmail(), dto.getPassword(),
@@ -72,7 +72,7 @@ public class RegistrationController {
     @ApiResponse(responseCode = "200", description = "Boolean result",
             content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = Boolean.class))})
-    @GetMapping("/registration/username/available/{username}")
+    @GetMapping("/username/available/{username}")
     public ResponseEntity<Boolean> isUsernameAvailable(@NotBlank @PathVariable String username) {
         return ResponseEntity.status(HttpStatusCode.valueOf(HttpStatus.OK_200)).body(userService.isUsernameAvailable(username));
     }
@@ -80,7 +80,7 @@ public class RegistrationController {
     @ApiResponse(responseCode = "200", description = "Boolean result",
             content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = Boolean.class))})
-    @GetMapping("/registration/email/available/{email}")
+    @GetMapping("/email/available/{email}")
     public ResponseEntity<Boolean> isEmailAvailable(@NotBlank @Email(regexp = Utils.EMAIL_REGEX) @PathVariable String email) {
         return ResponseEntity.status(HttpStatusCode.valueOf(HttpStatus.OK_200)).body(userService.isEmailAvailable(email));
     }
@@ -88,7 +88,7 @@ public class RegistrationController {
     @ApiResponse(responseCode = "200", description = "Boolean result",
             content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = Boolean.class))})
-    @GetMapping("/registration/mobile/available/{mobile}")
+    @GetMapping("/mobile/available/{mobile}")
     public ResponseEntity<Boolean> isMobileAvailable(@NotBlank @PathVariable String mobile) {
         return ResponseEntity.status(HttpStatusCode.valueOf(HttpStatus.OK_200)).body(userService.isMobileAvailable(mobile));
     }
@@ -99,7 +99,7 @@ public class RegistrationController {
     @ApiResponse(responseCode = "201", description = "activation CODE/LINK sent",
             content = {@Content(mediaType = "application/json",
                     schema = @Schema(implementation = UserMetaChangeDto.class))})
-    @PostMapping("/registration/activation")
+    @PostMapping("/activation")
     public ResponseEntity<UserMetaChangeDto> resendAccountActivationLink(@Valid @RequestBody AccountActivationRequestDto accountActivationRequestDto) {
         return ResponseEntity.status(HttpStatusCode.valueOf(HttpStatus.CREATED_201)).body(
                 UserMetaChangeDto.builder().userMetaChangeId(userService.sendAccountActivationMessage(accountActivationRequestDto.getEmailMobile(),
@@ -119,7 +119,7 @@ public class RegistrationController {
             @ApiResponse(responseCode = "201", description = "User activated and tokens created",
                     content = {@Content(mediaType = "application/json",
                             schema = @Schema(implementation = TokensResponseDto.class))})})
-    @PutMapping("/registration/activation")
+    @PutMapping("/activation")
     public ResponseEntity activateAccountByCode(@Valid @RequestBody AccountActivationDto accountActivationDto) {
         try {
             TokensResponseDto tokens = registrationService.activateAccountByCode(accountActivationDto.getEmailMobile(), accountActivationDto.getCode(),
@@ -140,7 +140,7 @@ public class RegistrationController {
      * Activates user account and verifies the contact info(email or mobile)
      * returns success/fail page
      */
-    @GetMapping("/registration/activation/link/{linkParam}")
+    @GetMapping("/activation/link/{linkParam}")
     public ModelAndView activateAccountByLink(@NotBlank @PathVariable String linkParam) {
         ModelAndView modelAndView = new ModelAndView();
         try {

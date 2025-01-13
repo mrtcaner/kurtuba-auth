@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class LoginCredentialsDto {
     @NotBlank
-    String emailUsername;
+    String emailMobile;
 
     @NotBlank
     String password;
