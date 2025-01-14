@@ -51,7 +51,6 @@ public class UserController {
      */
     @GetMapping("/info")
     public ResponseEntity getUserInfo(JwtAuthenticationToken authentication) {
-
         if (authentication == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED_401).build();
         }
