@@ -61,7 +61,7 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.OK_200)
                 .body(UserDto.fromUser(userService.getUserById(authentication.getName())
                         .orElseThrow(() -> new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST)))
-        );
+                );
     }
 
     /**
@@ -102,14 +102,7 @@ public class UserController {
      */
     @PutMapping("/password/reset/code")
     public ResponseEntity resetPasswordByCode(@Valid @RequestBody PasswordResetByCodeDto passwordResetByCodeDto) {
-        try {
-            return ResponseEntity.status(HttpStatus.OK_200).body(userService.resetPasswordByCode(passwordResetByCodeDto));
-        } catch (BusinessLogicException e) {
-            if (ErrorEnum.USER_META_CHANGE_CODE_MISMATCH.getCode().equals(e.getErrorCode())) {
-                userService.updatePasswordResetTryCount(passwordResetByCodeDto);
-            }
-            throw e;
-        }
+        return ResponseEntity.status(HttpStatus.OK_200).body(userService.resetPasswordByCode(passwordResetByCodeDto));
     }
 
     /**
@@ -255,16 +248,9 @@ public class UserController {
      */
     @PutMapping("/email/verification/code")
     public ResponseEntity verifyEmailByCode(@Valid @RequestBody EmailVerificationDto verificationDto) {
-        try {
-            userService.verifyEmailByCode(verificationDto.getEmailMobile(), verificationDto.getCode());
-            return ResponseEntity.status(HttpStatusCode.valueOf(org.eclipse.jetty.http.HttpStatus.OK_200))
-                    .body("");
-        } catch (BusinessLogicException e) {
-            if (ErrorEnum.USER_META_CHANGE_CODE_MISMATCH.getCode().equals(e.getErrorCode())) {
-                userService.updateEmailChangeTryCount(verificationDto);
-            }
-            throw e;
-        }
+        userService.verifyEmailByCode(verificationDto.getEmailMobile(), verificationDto.getCode());
+        return ResponseEntity.status(HttpStatusCode.valueOf(org.eclipse.jetty.http.HttpStatus.OK_200))
+                .body("");
     }
 
     /**
