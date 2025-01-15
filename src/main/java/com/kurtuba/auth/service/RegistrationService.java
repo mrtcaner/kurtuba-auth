@@ -14,6 +14,7 @@ import com.kurtuba.auth.data.model.UserRole;
 import com.kurtuba.auth.data.repository.LocalizationAvailableLocaleRepository;
 import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.error.exception.BusinessLogicException;
+import com.kurtuba.auth.utils.ServiceUtils;
 import com.kurtuba.auth.utils.TokenUtils;
 import com.nimbusds.jose.shaded.gson.JsonObject;
 import jakarta.validation.Valid;
@@ -28,7 +29,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
-import static com.kurtuba.auth.utils.ServiceUtils.validateUserMetaChange;
 import static com.kurtuba.auth.utils.Utils.generateVerificationCode;
 
 @Service
@@ -55,12 +55,15 @@ public class RegistrationService {
     final
     LocalizationAvailableLocaleRepository localizationAvailableLocaleRepository;
 
+    final
+    ServiceUtils serviceUtils;
+
     @Value("${kurtuba.meta-change.max-try-count}")
     private int metaChangeMaxTryCount;
     @Value("${kurtuba.meta-change.validity.email.activation-code.minutes}")
     private int activationCodeValidityMinutes;
 
-    public RegistrationService(UserService userService, UserMetaChangeService userMetaChangeService, AuthenticationService authenticationService, UserTokenService userTokenService, MessageJobService messageJobService, UserRoleService userRoleService, LocalizationAvailableLocaleRepository localizationAvailableLocaleRepository) {
+    public RegistrationService(UserService userService, UserMetaChangeService userMetaChangeService, AuthenticationService authenticationService, UserTokenService userTokenService, MessageJobService messageJobService, UserRoleService userRoleService, LocalizationAvailableLocaleRepository localizationAvailableLocaleRepository, ServiceUtils serviceUtils) {
         this.userService = userService;
         this.userMetaChangeService = userMetaChangeService;
         this.authenticationService = authenticationService;
@@ -68,6 +71,7 @@ public class RegistrationService {
         this.messageJobService = messageJobService;
         this.userRoleService = userRoleService;
         this.localizationAvailableLocaleRepository = localizationAvailableLocaleRepository;
+        this.serviceUtils = serviceUtils;
     }
 
     @Transactional
@@ -281,7 +285,7 @@ public class RegistrationService {
             throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION);
         }
 
-        validateUserMetaChange(userMetaChange, code);
+        serviceUtils.validateUserMetaChange(userMetaChange, code);
     }
 
     private TokensResponseDto activateAccount(User user, UserMetaChange userMetaChange, String clientId, String clientSecret) {

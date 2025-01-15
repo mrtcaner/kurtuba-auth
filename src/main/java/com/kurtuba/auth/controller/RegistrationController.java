@@ -121,18 +121,12 @@ public class RegistrationController {
                             schema = @Schema(implementation = TokensResponseDto.class))})})
     @PutMapping("/activation")
     public ResponseEntity activateAccountByCode(@Valid @RequestBody AccountActivationDto accountActivationDto) {
-        try {
-            TokensResponseDto tokens = registrationService.activateAccountByCode(accountActivationDto.getEmailMobile(), accountActivationDto.getCode(),
-                    accountActivationDto.getClientId(), accountActivationDto.getClientSecret());
+        TokensResponseDto tokens = registrationService.activateAccountByCode(accountActivationDto.getEmailMobile(), accountActivationDto.getCode(),
+                accountActivationDto.getClientId(), accountActivationDto.getClientSecret());
 
-            return tokens == null ? ResponseEntity.status(HttpStatus.OK_200).build() :
-                    ResponseEntity.status(HttpStatus.CREATED_201).body(tokens);
-        } catch (BusinessLogicException e) {
-            if (ErrorEnum.USER_META_CHANGE_CODE_MISMATCH.getCode().equals(e.getErrorCode())) {
-                userService.updateAccountActivationTryCount(accountActivationDto);
-            }
-            throw e;
-        }
+        return tokens == null ? ResponseEntity.status(HttpStatus.OK_200).build() :
+                ResponseEntity.status(HttpStatus.CREATED_201).body(tokens);
+
     }
 
     /**

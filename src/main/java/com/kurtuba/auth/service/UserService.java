@@ -10,6 +10,7 @@ import com.kurtuba.auth.data.repository.LocalizationAvailableLocaleRepository;
 import com.kurtuba.auth.data.repository.UserRepository;
 import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.error.exception.BusinessLogicException;
+import com.kurtuba.auth.utils.ServiceUtils;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -24,7 +25,7 @@ import java.util.Base64;
 import java.util.Optional;
 import java.util.UUID;
 
-import static com.kurtuba.auth.utils.ServiceUtils.validateUserMetaChange;
+
 import static com.kurtuba.auth.utils.Utils.generateVerificationCode;
 
 @Service
@@ -35,6 +36,7 @@ public class UserService {
     private final MessageJobService messageJobService;
     private final UserMetaChangeService userMetaChangeService;
     private final LocalizationAvailableLocaleRepository localizationAvailableLocaleRepository;
+    private final ServiceUtils serviceUtils;
 
     @Value("${kurtuba.meta-change.validity.password-reset-code.minutes}")
     private int passwordResetCodeValidityMinutes;
@@ -47,12 +49,13 @@ public class UserService {
 
     public UserService(UserRepository userRepository, UserTokenService userTokenService,
                        MessageJobService messageJobService, UserMetaChangeService userMetaChangeService,
-                       LocalizationAvailableLocaleRepository localizationAvailableLocaleRepository) {
+                       LocalizationAvailableLocaleRepository localizationAvailableLocaleRepository, ServiceUtils serviceUtils) {
         this.userRepository = userRepository;
         this.userTokenService = userTokenService;
         this.messageJobService = messageJobService;
         this.userMetaChangeService = userMetaChangeService;
         this.localizationAvailableLocaleRepository = localizationAvailableLocaleRepository;
+        this.serviceUtils = serviceUtils;
     }
 
     @Transactional
@@ -281,6 +284,7 @@ public class UserService {
         saveNewPassword(userMetaChange, passwordResetByLinkDto.getNewPassword(), passwordResetByLinkDto.getRepeatNewPassword());
     }
 
+    @Transactional
     public UserMetaChange validatePasswordResetLinkParam(String linkParam) {
         UserMetaChange userMetaChange = userMetaChangeService.findByLinkParam(linkParam).orElseThrow(() ->
                 new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION));
@@ -294,7 +298,7 @@ public class UserService {
             throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION);
         }
 
-        validateUserMetaChange(userMetaChange, code);
+        serviceUtils.validateUserMetaChange(userMetaChange, code);
     }
 
     private void saveNewPassword(@NotNull UserMetaChange userMetaChange, String newPassword, String repeatNewPassword) {
@@ -396,46 +400,6 @@ public class UserService {
         throw new UnsupportedOperationException("Feature incomplete. Contact assistance.");
     }
 
-    @Transactional
-    public void updateAccountActivationTryCount(AccountActivationDto accountActivationDto) {
-        UserMetaChange userMetaChange = userMetaChangeService
-                .findActiveMetaChangeOperationForUser(userRepository
-                        .getUserByEmailOrMobile(accountActivationDto.getEmailMobile()).orElseThrow(() ->
-                                new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST)
-                        ).getId(), MetaOperationType.ACCOUNT_ACTIVATION).orElseThrow(() ->
-                        new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION));
-        updateUserMetaChangeTryCount(userMetaChange);
-    }
-
-    @Transactional
-    public void updateEmailChangeTryCount(@Valid EmailVerificationDto emailVerificationDto) {
-        UserMetaChange userMetaChange = userMetaChangeService
-                .findActiveMetaChangeOperationForUser(userRepository
-                        .getUserByEmailOrMobile(emailVerificationDto.getEmailMobile()).orElseThrow(() ->
-                                new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST)
-                        ).getId(), MetaOperationType.EMAIL_CHANGE).orElseThrow(() ->
-                        new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION));
-        updateUserMetaChangeTryCount(userMetaChange);
-    }
-
-    @Transactional
-    public void updateUserMetaChangeTryCount(UserMetaChange userMetaChange) {
-        userMetaChange.setTryCount(userMetaChange.getTryCount() + 1);
-        userMetaChange.setUpdatedDate(LocalDateTime.now());
-        userMetaChangeService.update(userMetaChange);
-    }
-
-    @Transactional
-    public void updatePasswordResetTryCount(PasswordResetByCodeDto passwordResetByCodeDto) {
-        UserMetaChange userMetaChange = userMetaChangeService
-                .findActiveMetaChangeOperationForUser(userRepository
-                        .getUserByEmailOrMobile(passwordResetByCodeDto.getEmailMobile()).orElseThrow(() ->
-                                new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST)
-                        ).getId(), MetaOperationType.PASSWORD_RESET).orElseThrow(() ->
-                        new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION));
-        updateUserMetaChangeTryCount(userMetaChange);
-    }
-
     /**
      * Verify email by rest request. User must enter the code mailed to them
      *
@@ -474,7 +438,7 @@ public class UserService {
             throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_INVALID_OPERATION);
         }
 
-        validateUserMetaChange(userMetaChange, code);
+        serviceUtils.validateUserMetaChange(userMetaChange, code);
     }
 
     private UserDto saveNewEmail(UserMetaChange userMetaChange, User user) {

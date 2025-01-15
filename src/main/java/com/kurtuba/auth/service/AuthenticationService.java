@@ -45,6 +45,7 @@ public class AuthenticationService {
         if (!user.isActivated()) {
             throw new BusinessLogicException(ErrorEnum.USER_ACTIVATION_NOT_ACTIVATED);
         }
+
         user.setLastLoginAttempt(LocalDateTime.now());
         String dbPass = user.getPassword();
         // check password
