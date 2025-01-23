@@ -104,7 +104,7 @@ public class UserController {
     public ResponseEntity resetPasswordByCode(@Valid @RequestBody PasswordResetByCodeDto passwordResetByCodeDto) {
         TokensResponseDto tokens = userService.resetPasswordByCode(passwordResetByCodeDto);
         if(tokens != null){
-            return ResponseEntity.status(HttpStatus.CREATED_201).body(userService.resetPasswordByCode(passwordResetByCodeDto));
+            return ResponseEntity.status(HttpStatus.CREATED_201).body(tokens);
         }
         return ResponseEntity.status(HttpStatus.NO_CONTENT_204).build();
     }
