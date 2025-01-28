@@ -236,7 +236,7 @@ public class UserController {
     @PostMapping("/email/verification")
     public ResponseEntity requestChangeEmail(@Valid @RequestBody EmailVerificationRequestDto emailVerificationRequestDto,
                                                 Principal principal) {
-        return ResponseEntity.status(HttpStatus.OK_200)
+        return ResponseEntity.status(HttpStatus.CREATED_201)
                 .body(UserMetaChangeDto.builder()
                         .userMetaChangeId(userService.requestChangeEmail(principal.getName(),
                                 emailVerificationRequestDto.getEmail(), emailVerificationRequestDto.isByCode()).getId())
