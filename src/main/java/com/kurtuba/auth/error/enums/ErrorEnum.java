@@ -39,7 +39,7 @@ public enum ErrorEnum {
     LOCALIZATION_INVALID_RESOURCE_PARAMETER("Invalid resource parameter (languageCode-key)",1502),
     LOCALIZATION_UNSUPPORTED_REGION("Unsupported region",1503),
     ROLE_INVALID("Invalid role",1600),
-    CONTENT_POST_CONTENT_CANNOT_BE_EMPTY("", 1700),
+    CONTENT_POST_CONTENT_CANNOT_BE_EMPTY("Content cannot be empty", 1700),
     CONTENT_POST_CAN_REPOST_ONCE("", 1701),
     CONTENT_POST_POSTTYPE_MUST_BE_WATCHLIST("",1702),
     CONTENT_GCP_FILE_STORE_ERROR("An error occurred while storing data to GCS",1703),
@@ -57,6 +57,8 @@ public enum ErrorEnum {
     CONTENT_STORAGE_CANNOT_READ_FILE("Cannot read file",1715),
     CONTENT_STORAGE_CANNOT_READ_STORED_FILE("Cannot read stored file",1716),
     CONTENT_STORAGE_FILE_NOT_FOUND("Cannot find file",1717),
+    CONTENT_DUA_TITLE_CANNOT_BE_EMPTY("Content cannot be empty", 1718),
+    CONTENT_DUA_CONTENT_CANNOT_BE_EMPTY("Content cannot be empty", 1719),
     SOCIAL_USER_FOLLOW_CANNOT_FOLLOW_THEMSELVES("Users cannot follow themselves", 1800),
     SOCIAL_USER_FOLLOW_ALREADY_FOLLOWING("User already following intended user",1801);
 
