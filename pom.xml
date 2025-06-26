@@ -19,7 +19,20 @@
 		<maven.failsafe.version>3.5.2</maven.failsafe.version>
 		<maven.build.helper.version>3.6.0</maven.build.helper.version>
 		<jacoco.version>0.8.12</jacoco.version>
+		<spring-cloud-gcp.version>6.2.2</spring-cloud-gcp.version>
 	</properties>
+	<!-- The Spring Framework on Google Cloud BOM will manage spring-cloud-gcp version numbers for you. -->
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>com.google.cloud</groupId>
+				<artifactId>spring-cloud-gcp-dependencies</artifactId>
+				<version>${spring-cloud-gcp.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -166,9 +179,16 @@
 		<!-- content dependencies start -->
 		<dependency>
 			<groupId>com.google.cloud</groupId>
-			<artifactId>google-cloud-storage</artifactId>
-			<version>2.27.1</version>
+			<artifactId>spring-cloud-gcp-starter-storage</artifactId>
+			<version>${spring-cloud-gcp.version}</version>
 		</dependency>
+			<!-- content image-to-text and translation dependencies start -->
+		<dependency>
+			<groupId>com.google.cloud</groupId>
+			<artifactId>spring-cloud-gcp-starter-vision</artifactId>
+			<version>${spring-cloud-gcp.version}</version>
+		</dependency>
+			<!-- content image-to-text and translation dependencies end -->
 		<!-- content dependencies end -->
 
 	</dependencies>
