@@ -188,6 +188,11 @@
 			<artifactId>spring-cloud-gcp-starter-vision</artifactId>
 			<version>${spring-cloud-gcp.version}</version>
 		</dependency>
+		<dependency>
+			<groupId>com.google.cloud</groupId>
+			<artifactId>google-cloud-translate-spring-starter</artifactId>
+			<version>${spring-cloud-gcp.version}-preview</version>
+		</dependency>
 			<!-- content image-to-text and translation dependencies end -->
 		<!-- content dependencies end -->
 
