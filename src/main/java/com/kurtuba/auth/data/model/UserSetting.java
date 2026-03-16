@@ -6,7 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Data
@@ -41,7 +41,7 @@ public class UserSetting implements Serializable {
     private LocalizationAvailableLocale locale;
 
     @NotNull
-    private LocalDateTime createdDate;
+    private Instant createdDate;
 
     @Override
     public boolean equals(Object obj) {

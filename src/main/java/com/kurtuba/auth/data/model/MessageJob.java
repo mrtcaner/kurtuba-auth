@@ -11,7 +11,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Data
@@ -48,7 +48,7 @@ public class MessageJob {
     MessageJobStateType state;
 
     @NotNull
-    LocalDateTime sendAfterDate;
+    Instant sendAfterDate;
 
     String userMetaChangeId;
 
@@ -65,7 +65,7 @@ public class MessageJob {
     int maxTryCount;
 
     @NotNull
-    LocalDateTime createdDate;
+    Instant createdDate;
 
-    LocalDateTime updatedDate;
+    Instant updatedDate;
 }

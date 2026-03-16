@@ -26,7 +26,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
@@ -89,17 +90,13 @@ public class RegistrationService {
         registrationDto.setPassword(new BCryptPasswordEncoder().encode(pass));
 
         User user = registrationDto.toUser();
-        if (StringUtils.hasLength(user.getUsername())) {
-            user.getUserSetting().setCanChangeUsername(false);
-        } else {
-            user.getUserSetting().setCanChangeUsername(true);
-        }
+        user.getUserSetting().setCanChangeUsername(!StringUtils.hasLength(user.getUsername()));
 
         user.getUserSetting().setLocale(localizationAvailableLocaleRepository
                 .findByLanguageCodeAndCountryCode(user.getUserSetting().getLocale().getLanguageCode(),
                         user.getUserSetting().getLocale().getCountryCode())
                 .orElseThrow(() -> new BusinessLogicException(ErrorEnum.LOCALIZATION_UNSUPPORTED_REGION)));
-        user.getUserSetting().setCreatedDate(LocalDateTime.now());
+        user.getUserSetting().setCreatedDate(Instant.now());
         user.getUserSetting().setUser(user);
 
         //first save user and userSettings
@@ -110,7 +107,7 @@ public class RegistrationService {
                 userRoleService.create(UserRole.builder()
                         .user(user)
                         .role(Role.builder().name(AuthoritiesType.USER.name()).build())
-                        .createdDate(LocalDateTime.now())
+                        .createdDate(Instant.now())
                         .build())
         ));
 
@@ -196,7 +193,7 @@ public class RegistrationService {
                     .findByLanguageCodeAndCountryCode(user.getUserSetting().getLocale().getLanguageCode(),
                             user.getUserSetting().getLocale().getCountryCode())
                     .orElseThrow(() -> new BusinessLogicException(ErrorEnum.LOCALIZATION_UNSUPPORTED_REGION)));
-            user.getUserSetting().setCreatedDate(LocalDateTime.now());
+            user.getUserSetting().setCreatedDate(Instant.now());
             user.getUserSetting().setUser(user);
             // save user and userSettings
             userService.saveUser(user);
@@ -217,7 +214,7 @@ public class RegistrationService {
         }
 
         if (existingUser.getAuthProvider().equals(newUserByOtherProvider.getProvider())) {
-            //this email with given provider exists. check active, lock etc fields and return a token
+            //this email with the given provider exists. check active, lock etc. fields and return a token
             if (existingUser.isActivated() && !existingUser.isLocked()) {
                 String pass = UUID.randomUUID().toString();
                 existingUser.setPassword(new BCryptPasswordEncoder().encode(pass));
@@ -287,7 +284,7 @@ public class RegistrationService {
             user.setMobileVerified(true);
         }
         userService.saveUser(user);
-        userMetaChange.setUpdatedDate(LocalDateTime.now());
+        userMetaChange.setUpdatedDate(Instant.now());
         userMetaChange.setExecuted(true);
         userMetaChangeService.update(userMetaChange);
 
@@ -329,15 +326,15 @@ public class RegistrationService {
                 .contactType(ContactType.EMAIL)
                 .meta(user.getEmail())
                 .executed(false)
-                .createdDate(LocalDateTime.now())
-                .expirationDate(LocalDateTime.now().plusMinutes(activationEmailCodeValidityMinutes))
+                .createdDate(Instant.now())
+                .expirationDate(Instant.now().plus(Duration.ofMinutes(activationEmailCodeValidityMinutes)))
                 .maxTryCount(byCode ? metaChangeEmailMaxTryCount : null)
                 .tryCount(byCode ? 0 : null)
                 .code(byCode ? generateVerificationCode() : null)
                 .linkParam(!byCode ?
                         Base64.getEncoder().encodeToString(UUID.randomUUID().toString().getBytes()) : null)
                 .build();
-        userMetaChangeService.create(metaChange);
+        metaChange = userMetaChangeService.create(metaChange);
         if (byCode) {
             messageJobService.sendAccountActivationCodeMail(user.getEmail(), metaChange.getCode(),
                     user.getUserSetting().getLocale().getLanguageCode(), metaChange.getId());
@@ -373,15 +370,15 @@ public class RegistrationService {
                 .contactType(ContactType.MOBILE)
                 .meta(user.getMobile())
                 .executed(false)
-                .createdDate(LocalDateTime.now())
-                .expirationDate(LocalDateTime.now().plusMinutes(activationSmsCodeValidityMinutes))
+                .createdDate(Instant.now())
+                .expirationDate(Instant.now().plus(Duration.ofMinutes(activationSmsCodeValidityMinutes)))
                 .maxTryCount(metaChangeSMSMaxTryCount)
                 .tryCount(0)
                 .code(null)
                 .linkParam(null)
                 .build();
 
-        userMetaChangeService.create(metaChange);
+        metaChange = userMetaChangeService.create(metaChange);
         messageJobService.sendVerificationCodeSMSViaTwilio(user.getMobile(), metaChange.getId());
         return metaChange;
     }

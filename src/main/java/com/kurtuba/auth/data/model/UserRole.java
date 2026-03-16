@@ -2,12 +2,11 @@ package com.kurtuba.auth.data.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Data
@@ -34,5 +33,5 @@ public class UserRole implements Serializable {
     private Role role;
 
     @NotNull
-    LocalDateTime createdDate;
+    Instant createdDate;
 }

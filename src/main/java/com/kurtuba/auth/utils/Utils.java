@@ -1,6 +1,11 @@
 package com.kurtuba.auth.utils;
 
+import com.kurtuba.auth.data.enums.RegisteredClientType;
+import com.kurtuba.auth.data.model.RegisteredClient;
+
+import java.time.Instant;
 import java.util.Random;
+import java.util.stream.Stream;
 
 public class Utils {
 
@@ -10,13 +15,23 @@ public class Utils {
 
     public static final String PASSWORD_REGEX = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[\\.@$!%*#?&])[A-Za-z\\d\\.@$!%*#?&]{6,}$";
 
+    public static final RegisteredClient DEFAULT_CLIENT = RegisteredClient.builder()
+                                                                          .clientId("default-client")
+                                                                          .clientName("default-client")
+                                                                          .clientType(RegisteredClientType.DEFAULT)
+                                                                          .scopeEnabled(false)
+                                                                          .accessTokenTtlMinutes(5)
+                                                                          .refreshTokenEnabled(true)
+                                                                          .refreshTokenTtlMinutes(129600)
+                                                                          .sendTokenInCookie(false)
+                                                                          .createdDate(Instant.now())
+                                                                          .build();
+
     public static String generateVerificationCode(){
         int code = new Random().nextInt(999999);
-        String numStr = String.valueOf(code);
-        while(numStr.length() < 6){
-            numStr = "0" + numStr;
-        }
-        return numStr;
+        StringBuilder numStr = new StringBuilder(String.valueOf(code));
+        Stream.generate(() -> numStr).limit(6 - numStr.length( )).forEach(stringBuilder -> stringBuilder.insert(0, "0"));
+        return numStr.toString();
     }
 
     public static String generateRandomAlphanumericString(int targetStringLength){

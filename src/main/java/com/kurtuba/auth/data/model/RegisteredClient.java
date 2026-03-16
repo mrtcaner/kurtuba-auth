@@ -11,7 +11,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Set;
 
 @Entity
@@ -64,6 +64,6 @@ public class RegisteredClient {
 
     private int cookieMaxAgeSeconds;
 
-    private LocalDateTime createdDate;
+    private Instant createdDate;
 
 }

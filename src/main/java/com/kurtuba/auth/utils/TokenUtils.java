@@ -24,13 +24,13 @@ import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.*;
+import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Instant;
 import java.util.*;
 
 @Component
@@ -65,7 +65,7 @@ public class TokenUtils {
      * @param duration
      * @return Access token
      */
-    public String generateToken(String userId, Set<String> auds, Set<String> scopes, Duration duration) {
+    public String generateToken(String userId, Set<String> auds, Set<String> scopes, Duration duration, String clientId) {
         JwtBuilder builder = Jwts.builder()
                 .header()
                 .keyId(currentPublicJsonWebKey.getKeyId())
@@ -76,9 +76,9 @@ public class TokenUtils {
                 .audience()
                 .add(auds)
                 .and()
-                .issuedAt(new Date())
-                .notBefore(new Date())
-                .expiration(Date.from(LocalDateTime.now().plus(duration).atZone(ZoneId.systemDefault()).toInstant()));
+                .issuedAt(Date.from(Instant.now()))
+                .notBefore(Date.from(Instant.now()))
+                .expiration(Date.from(Instant.now().plus(duration)));
 
         if (!CollectionUtils.isEmpty(scopes))
             builder = builder.claim("scope", scopes);
@@ -132,7 +132,7 @@ public class TokenUtils {
                 key.getKeyId().equals(keyId)).findFirst().orElse(null);
 
         if (webKey == null) {
-            throw new BusinessLogicException(ErrorEnum.AUTH_INVALID_TOKEN);
+            throw new BusinessLogicException(ErrorEnum.AUTH_ACCESS_TOKEN_INVALID);
         }
 
         Claims claims = (Claims) Jwts.parser()
@@ -158,7 +158,7 @@ public class TokenUtils {
             JsonObject keysJson = JsonParser.parseString(jwkKeys).getAsJsonObject();
             Map<Integer, PublicJsonWebKey> orderedKeys = new HashMap<>();
             encryptedKeys.asList().stream().forEach(encryptedKeyJson -> {
-                String secret = keysJson.get(encryptedKeyJson.getAsJsonObject().get("id").getAsString()).getAsString().toString();
+                String secret = keysJson.get(encryptedKeyJson.getAsJsonObject().get("id").getAsString()).getAsString();
                 String jwkEncrypted = encryptedKeyJson.getAsJsonObject().get("encryptedKey").getAsString();
                 JsonWebEncryption decryptingJwe = new JsonWebEncryption();
                 try {

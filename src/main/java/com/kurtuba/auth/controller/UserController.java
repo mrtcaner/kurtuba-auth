@@ -4,13 +4,15 @@ package com.kurtuba.auth.controller;
 import com.kurtuba.auth.data.dto.*;
 import com.kurtuba.auth.data.enums.AuthoritiesType;
 import com.kurtuba.auth.data.enums.JWTClaimType;
+import com.kurtuba.auth.data.model.User;
 import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.error.exception.BusinessLogicException;
+import com.kurtuba.auth.service.LogoutService;
 import com.kurtuba.auth.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import lombok.RequiredArgsConstructor;
 import org.eclipse.jetty.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -19,17 +21,16 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
 import java.security.Principal;
+import java.util.List;
 
 
 @RestController
 @RequestMapping("user")
+@RequiredArgsConstructor
 public class UserController {
 
-    final UserService userService;
-
-    public UserController(UserService userService) {
-        this.userService = userService;
-    }
+    private final UserService userService;
+    private final LogoutService logoutService;
 
     /**
      * this method is for internal use only
@@ -38,13 +39,14 @@ public class UserController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('SCOPE_SERVICE')")
     public ResponseEntity getUserById(@PathVariable @NotBlank String id) {
-        return ResponseEntity.status(HttpStatus.OK_200).body(UserDto.fromUser(userService.getUserById(id).orElseThrow(
-                () -> new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST))));
+        return ResponseEntity.status(HttpStatus.OK_200)
+                             .body(UserDto.fromUser(userService.getUserById(id)
+                                                               .orElseThrow(() -> new BusinessLogicException(
+                                                                       ErrorEnum.USER_DOESNT_EXIST))));
     }
 
     /**
      * users with a valid token can access
-     * todo only certain info must be shared through a DTO
      *
      * @param authentication
      * @return
@@ -54,14 +56,40 @@ public class UserController {
         if (authentication == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED_401).build();
         }
-        if (authentication.getAuthorities().contains(JWTClaimType.SCOPE.name() + "_" + AuthoritiesType.SERVICE.name())) {
+        if (authentication.getAuthorities()
+                          .contains(JWTClaimType.SCOPE.name() + "_" + AuthoritiesType.SERVICE.name())) {
             // SERVICEs are not users
             return ResponseEntity.status(HttpStatus.BAD_REQUEST_400).build();
         }
         return ResponseEntity.status(HttpStatus.OK_200)
-                .body(UserDto.fromUser(userService.getUserById(authentication.getName())
-                        .orElseThrow(() -> new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST)))
-                );
+                             .body(UserDto.fromUser(userService.getUserById(authentication.getName())
+                                                               .orElseThrow(() -> new BusinessLogicException(
+                                                                       ErrorEnum.USER_DOESNT_EXIST))));
+    }
+
+    /**
+     * users with a valid token can access
+     *
+     * @param authentication
+     * @return
+     */
+    @GetMapping("/locale")
+    public ResponseEntity<UserLocaleDto> getUserLocale(JwtAuthenticationToken authentication) {
+        if (authentication == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED_401).build();
+        }
+        if (authentication.getAuthorities()
+                          .contains(JWTClaimType.SCOPE.name() + "_" + AuthoritiesType.SERVICE.name())) {
+            // SERVICEs are not users
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST_400).build();
+        }
+        User usr = userService.getUserById(authentication.getName())
+                              .orElseThrow(() -> new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST));
+        return ResponseEntity.status(HttpStatus.OK_200)
+                             .body(UserLocaleDto.builder()
+                                                .langCode(usr.getUserSetting().getLocale().getLanguageCode())
+                                                .countryCode(usr.getUserSetting().getLocale().getCountryCode())
+                                                .build());
     }
 
     /**
@@ -85,10 +113,12 @@ public class UserController {
      */
     @PostMapping("/password/reset")
     public ResponseEntity requestPasswordReset(@Valid @RequestBody PasswordResetRequestDto passwordResetRequestDto) {
-        return ResponseEntity.status(HttpStatus.CREATED_201).body(UserMetaChangeDto.builder()
-                .userMetaChangeId(userService.requestResetPassword(passwordResetRequestDto.getEmailMobile(),
-                        passwordResetRequestDto.isByCode()).getId())
-                .build());
+        return ResponseEntity.status(HttpStatus.CREATED_201)
+                             .body(UserMetaChangeDto.builder()
+                                                    .userMetaChangeId(userService.requestResetPassword(
+                                                            passwordResetRequestDto.getEmailMobile(),
+                                                            passwordResetRequestDto.isByCode()).getId())
+                                                    .build());
     }
 
     /**
@@ -103,7 +133,7 @@ public class UserController {
     @PutMapping("/password/reset/code")
     public ResponseEntity resetPasswordByCode(@Valid @RequestBody PasswordResetByCodeDto passwordResetByCodeDto) {
         TokensResponseDto tokens = userService.resetPasswordByCode(passwordResetByCodeDto);
-        if(tokens != null){
+        if (tokens != null) {
             return ResponseEntity.status(HttpStatus.CREATED_201).body(tokens);
         }
         return ResponseEntity.status(HttpStatus.NO_CONTENT_204).build();
@@ -121,16 +151,16 @@ public class UserController {
         try {
             userService.validatePasswordResetLinkParam(linkParam);
             modelAndView.setViewName("passwordReset.html");
-            modelAndView.addObject("passwordResetByLinkDto", PasswordResetByLinkDto.builder()
-                    .linkParam(linkParam)
-                    .build());
+            modelAndView.addObject("passwordResetByLinkDto",
+                                   PasswordResetByLinkDto.builder().linkParam(linkParam).build());
         } catch (BusinessLogicException ex) {
             modelAndView.setViewName("genericResult.html");//failure
             modelAndView.addAllObjects(ResultPageDto.builder()
-                    .success(false)
-                    .title("Password Reset Failed!")
-                    .message1(ex.getMessage())
-                    .build().toMap());
+                                                    .success(false)
+                                                    .title("Password Reset Failed!")
+                                                    .message1(ex.getMessage())
+                                                    .build()
+                                                    .toMap());
         }
         return modelAndView;
     }
@@ -143,7 +173,8 @@ public class UserController {
      * @return
      */
     @PostMapping("/password/reset/password-reset")
-    public ModelAndView handleResetPasswordPagePost(@Valid PasswordResetByLinkDto passwordResetByLinkDto, BindingResult result) {
+    public ModelAndView handleResetPasswordPagePost(@Valid PasswordResetByLinkDto passwordResetByLinkDto,
+                                                    BindingResult result) {
         ModelAndView modelAndView = new ModelAndView();
         if (result.hasErrors()) {
             //in case password mismatch or required complexity is not fulfilled etc.
@@ -154,18 +185,17 @@ public class UserController {
             try {
                 userService.resetPasswordByLink(passwordResetByLinkDto);
                 modelAndView.setViewName("genericResult.html");//success
-                modelAndView.addAllObjects(ResultPageDto.builder()
-                        .success(true)
-                        .title("Password changed successfully!")
-                        .build().toMap());
+                modelAndView.addAllObjects(
+                        ResultPageDto.builder().success(true).title("Password changed successfully!").build().toMap());
             } catch (BusinessLogicException ex) {
                 // user doesn't exist in the system or code expired etc.
                 modelAndView.setViewName("genericResult.html");//failure
                 modelAndView.addAllObjects(ResultPageDto.builder()
-                        .success(false)
-                        .title("Password Reset Failed!")
-                        .message1(ex.getMessage())
-                        .build().toMap());
+                                                        .success(false)
+                                                        .title("Password Reset Failed!")
+                                                        .message1(ex.getMessage())
+                                                        .build()
+                                                        .toMap());
             }
         }
 
@@ -195,8 +225,9 @@ public class UserController {
      * @return
      */
     @PostMapping("/password/reset/forgot-password")
-    public ModelAndView handleForgotPasswordPageRequestPasswordReset(@ModelAttribute("forgotPasswordForm") @Valid PasswordResetRequestDto passwordResetRequestDto,
-                                                 BindingResult result) {
+    public ModelAndView handleForgotPasswordPageRequestPasswordReset(
+            @ModelAttribute("forgotPasswordForm") @Valid PasswordResetRequestDto passwordResetRequestDto,
+            BindingResult result) {
         ModelAndView modelAndView = new ModelAndView();
         if (result.hasErrors()) {
             //in case of malformed email
@@ -217,9 +248,11 @@ public class UserController {
             // success!
             modelAndView.setViewName("genericResult.html");//success
             modelAndView.addAllObjects(ResultPageDto.builder()
-                    .success(true)
-                    .message1("We sent a password reset link to " + passwordResetRequestDto.getEmailMobile())
-                    .build().toMap());
+                                                    .success(true)
+                                                    .message1("We sent a password reset link to " +
+                                                              passwordResetRequestDto.getEmailMobile())
+                                                    .build()
+                                                    .toMap());
         }
 
         return modelAndView;
@@ -234,13 +267,16 @@ public class UserController {
      * @return
      */
     @PostMapping("/email/verification")
-    public ResponseEntity requestChangeEmail(@Valid @RequestBody EmailVerificationRequestDto emailVerificationRequestDto,
-                                                Principal principal) {
+    public ResponseEntity requestChangeEmail(
+            @Valid @RequestBody EmailVerificationRequestDto emailVerificationRequestDto, Principal principal) {
         return ResponseEntity.status(HttpStatus.CREATED_201)
-                .body(UserMetaChangeDto.builder()
-                        .userMetaChangeId(userService.requestChangeEmail(principal.getName(),
-                                emailVerificationRequestDto.getEmail(), emailVerificationRequestDto.isByCode()).getId())
-                        .build());
+                             .body(UserMetaChangeDto.builder()
+                                                    .userMetaChangeId(
+                                                            userService.requestChangeEmail(principal.getName(),
+                                                                                           emailVerificationRequestDto.getEmail(),
+                                                                                           emailVerificationRequestDto.isByCode())
+                                                                       .getId())
+                                                    .build());
 
     }
 
@@ -251,10 +287,10 @@ public class UserController {
      * @return
      */
     @PutMapping("/email/verification/code")
-    public ResponseEntity verifyEmailByCode(@Valid @RequestBody EmailVerificationDto verificationDto, Principal principal) {
+    public ResponseEntity verifyEmailByCode(@Valid @RequestBody EmailVerificationDto verificationDto,
+                                            Principal principal) {
         userService.verifyEmailByCode(principal.getName(), verificationDto.getCode());
-        return ResponseEntity.status(HttpStatusCode.valueOf(org.eclipse.jetty.http.HttpStatus.OK_200))
-                .body("");
+        return ResponseEntity.ok().build();
     }
 
     /**
@@ -270,18 +306,24 @@ public class UserController {
             userService.verifyEmailByLink(linkParam);
             modelAndView.setViewName("genericResult.html");//sucess
             modelAndView.addAllObjects(ResultPageDto.builder()
-                    .success(true)
-                    .title("Congratulations!")
-                    .message1("You can now log in to your account with your email address")
-                    .build().toMap());
+                                                    .success(true)
+                                                    .title("Congratulations!")
+                                                    .message1(
+                                                            "You can now log in to your account with your email " +
+                                                            "address")
+                                                    .build()
+                                                    .toMap());
         } catch (BusinessLogicException ex) {
             modelAndView.setViewName("genericResult.html");//failure
             modelAndView.addAllObjects(ResultPageDto.builder()
-                    .success(false)
-                    .title("Verification Failed!")
-                    .message1(ex.getMessage())
-                    .message2("Try logging in to your account to request a new verification link")
-                    .build().toMap());
+                                                    .success(false)
+                                                    .title("Verification Failed!")
+                                                    .message1(ex.getMessage())
+                                                    .message2(
+                                                            "Try logging in to your account to request a new " +
+                                                            "verification link")
+                                                    .build()
+                                                    .toMap());
         }
         return modelAndView;
     }
@@ -294,11 +336,15 @@ public class UserController {
      * @return
      */
     @PostMapping("/mobile/verification")
-    public ResponseEntity requestChangeMobile(@Valid @RequestBody MobileVerificationRequestDto mobileVerificationRequestDto,
-                                                    Principal principal) {
+    public ResponseEntity requestChangeMobile(
+            @Valid @RequestBody MobileVerificationRequestDto mobileVerificationRequestDto, Principal principal) {
         return ResponseEntity.status(HttpStatus.CREATED_201)
-                .body(UserMetaChangeDto.builder().userMetaChangeId(userService.requestChangeMobile(principal.getName(),
-                                mobileVerificationRequestDto.getMobile()).getId()).build());
+                             .body(UserMetaChangeDto.builder()
+                                                    .userMetaChangeId(
+                                                            userService.requestChangeMobile(principal.getName(),
+                                                                                            mobileVerificationRequestDto.getMobile())
+                                                                       .getId())
+                                                    .build());
 
     }
 
@@ -309,9 +355,10 @@ public class UserController {
      * @return
      */
     @PutMapping("/mobile/verification/code")
-    public ResponseEntity verifyMobileByCode(@Valid @RequestBody MobileVerificationDto verificationDto, Principal principal) {
+    public ResponseEntity verifyMobileByCode(@Valid @RequestBody MobileVerificationDto verificationDto,
+                                             Principal principal) {
         userService.verifyMobileByCode(principal.getName(), verificationDto.getCode());
-        return ResponseEntity.status(HttpStatusCode.valueOf(org.eclipse.jetty.http.HttpStatus.OK_200)).build();
+        return ResponseEntity.ok().build();
     }
 
     /**
@@ -323,10 +370,51 @@ public class UserController {
      */
     @PutMapping("/personal-info")
     public ResponseEntity updatePersonalInfo(@Valid @RequestBody UserPersonalInfoDto userPersonalInfoDto,
-                                              Principal principal) {
+                                             Principal principal) {
         userService.updateUserPersonalInfo(principal.getName(), userPersonalInfoDto);
         return ResponseEntity.status(HttpStatus.OK_200).build();
 
+    }
+
+    @PutMapping("/lang")
+    public ResponseEntity<Void> updateLang(@Valid @RequestParam String langCode, Principal principal) {
+        userService.updateUserLang(principal.getName(), langCode);
+        return ResponseEntity.ok().build();
+
+    }
+
+    @PostMapping("/fcm-token")
+    public ResponseEntity<Void> upsertFcmToken(@Valid @RequestBody FcmTokenUpsertRequestDto fcmTokenUpsertRequestDto,
+                                               JwtAuthenticationToken authenticationToken) {
+        userService.upsertUserFcmToken(authenticationToken.getName(), fcmTokenUpsertRequestDto.getFcmToken(),
+                                       authenticationToken.getToken().getId(),
+                                       fcmTokenUpsertRequestDto.getFirebaseInstallationId());
+        return ResponseEntity.ok().build();
+
+    }
+
+    @GetMapping("/fcm-token")
+    public ResponseEntity<List<UserFcmTokenResponseDto>> getUserFcmToken(JwtAuthenticationToken authentication) {
+        List<UserFcmTokenResponseDto> fcmTokens = userService.getUserFcmTokens(authentication.getName());
+        if (fcmTokens.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND_404).build();
+        }
+        return ResponseEntity.ok(fcmTokens);
+
+    }
+
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(JwtAuthenticationToken authentication) {
+        logoutService.doLogout(authentication.getToken().getId());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/logout/firebase")
+    public ResponseEntity<Void> logoutFcm(@NotBlank @RequestParam String firebaseInstallationId,
+                                          JwtAuthenticationToken authentication) {
+        logoutService.doLogoutFcm(authentication.getToken().getId(), firebaseInstallationId);
+        return ResponseEntity.ok().build();
     }
 
 }

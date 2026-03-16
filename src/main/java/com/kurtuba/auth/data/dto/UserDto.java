@@ -11,7 +11,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Data
@@ -27,7 +27,7 @@ public class UserDto {
     private String username;
     private List<UserRole> userRoles;
     private UserSetting userSetting;
-    private LocalDateTime birthdate;
+    private Instant birthdate;
     private GenderType gender;
     private AuthProviderType authProvider;
     private boolean activated;
@@ -36,8 +36,8 @@ public class UserDto {
     private boolean showCaptcha;
     private boolean emailVerified;
     private boolean mobileVerified;
-    private LocalDateTime lastLoginAttempt;
-    private LocalDateTime createdDate;
+    private Instant lastLoginAttempt;
+    private Instant createdDate;
 
     public User toUser() {
         return User.builder()

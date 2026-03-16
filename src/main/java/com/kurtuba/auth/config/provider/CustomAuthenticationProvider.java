@@ -1,7 +1,7 @@
 package com.kurtuba.auth.config.provider;
 
-import com.kurtuba.auth.data.model.User;
 import com.kurtuba.auth.data.dto.KurtubaUserDetailsDto;
+import com.kurtuba.auth.data.model.User;
 import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.error.exception.BusinessLogicException;
 import com.kurtuba.auth.service.AuthenticationService;

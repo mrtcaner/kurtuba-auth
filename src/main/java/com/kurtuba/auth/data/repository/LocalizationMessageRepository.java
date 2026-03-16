@@ -8,10 +8,10 @@ import java.util.Optional;
 
 public interface LocalizationMessageRepository extends CrudRepository<LocalizationMessage, String> {
 
-    Optional<LocalizationMessage> findByLanguageCodeAndKey(String language, String key);
+    Optional<LocalizationMessage> findByLanguageCodeAndMessageKey(String language, String key);
 
     List<LocalizationMessage> findByLanguageCode(String languageCode);
 
-    List<LocalizationMessage> findByKey(String languageCode);
+    List<LocalizationMessage> findByMessageKey(String languageCode);
 
 }

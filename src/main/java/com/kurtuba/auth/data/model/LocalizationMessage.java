@@ -8,7 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Data
@@ -28,13 +28,13 @@ public class LocalizationMessage {
     private String languageCode;
 
     @NotBlank
-    private String key;
+    private String messageKey;
 
     @NotBlank
     private String message;
 
     @NotNull
-    private LocalDateTime createdDate;
+    private Instant createdDate;
 
-    private LocalDateTime updatedDate;
+    private Instant updatedDate;
 }

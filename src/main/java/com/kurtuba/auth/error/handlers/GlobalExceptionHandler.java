@@ -1,10 +1,10 @@
 package com.kurtuba.auth.error.handlers;
 
+import com.kurtuba.auth.data.dto.ResponseErrorDto;
 import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.error.exception.BusinessLogicError;
 import com.kurtuba.auth.error.exception.BusinessLogicException;
 import com.kurtuba.auth.error.exception.ResourceNotFoundException;
-import com.kurtuba.auth.data.dto.ResponseErrorDto;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @ControllerAdvice
 @Order(Ordered.HIGHEST_PRECEDENCE)
@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
                 .message(ex.getMessage())
                 .error(ex.getMessage())
                 .detail(request.getDescription(false))
-                .timestamp(LocalDateTime.now())
+                .timestamp(Instant.now())
                 .build();
 
         return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
@@ -46,7 +46,7 @@ public class GlobalExceptionHandler {
                 .message(ErrorEnum.RESOURCE_NOT_FOUND.getMessage())
                 .error(ex.getMessage())
                 .detail(request.getDescription(false))
-                .timestamp(LocalDateTime.now())
+                .timestamp(Instant.now())
                 .build();
         return new ResponseEntity<>(errorDetails, HttpStatus.NOT_FOUND);
     }
@@ -60,7 +60,7 @@ public class GlobalExceptionHandler {
                 .message(ex.getConstraintViolations().toString())
                 .error(ex.getMessage())
                 .detail(request.getDescription(false))
-                .timestamp(LocalDateTime.now())
+                .timestamp(Instant.now())
                 .build();
 
         return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
@@ -72,10 +72,10 @@ public class GlobalExceptionHandler {
         ResponseErrorDto errorDetails = ResponseErrorDto
                 .builder()
                 .code(ErrorEnum.INVALID_PARAMETER.getCode())
-                .message(ex.getAllValidationResults().toString())
+                .message(ex.getParameterValidationResults().toString())
                 .error(ex.getMessage())
                 .detail(request.getDescription(false))
-                .timestamp(LocalDateTime.now())
+                .timestamp(Instant.now())
                 .build();
 
         return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
@@ -90,7 +90,7 @@ public class GlobalExceptionHandler {
                 .message(ex.getMessage())
                 .error(ex.getBody().getDetail())
                 .detail(request.getDescription(false))
-                .timestamp(LocalDateTime.now())
+                .timestamp(Instant.now())
                 .build();
 
         return new ResponseEntity<>(errorDetails, HttpStatus.BAD_REQUEST);
@@ -105,7 +105,7 @@ public class GlobalExceptionHandler {
                 .message(ex.getMessage())
                 .error(ex.getMessage())
                 .detail(request.getDescription(false))
-                .timestamp(LocalDateTime.now())
+                .timestamp(Instant.now())
                 .build();
 
         return new ResponseEntity<>(errorDetails, HttpStatus.INTERNAL_SERVER_ERROR);

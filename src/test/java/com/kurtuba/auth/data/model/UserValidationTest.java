@@ -8,7 +8,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Set;
 import java.util.UUID;
 
@@ -41,7 +41,7 @@ public class UserValidationTest {
                 .birthdate(null)
                 .password("12345")
                 .username("username")
-                .createdDate(LocalDateTime.now())
+                .createdDate(Instant.now())
                 .build();
     }
 

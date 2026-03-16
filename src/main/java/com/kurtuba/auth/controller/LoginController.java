@@ -9,51 +9,50 @@ import com.kurtuba.auth.data.repository.RegisteredClientRepository;
 import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.error.exception.BusinessLogicException;
 import com.kurtuba.auth.service.LoginService;
-import com.kurtuba.auth.service.UserService;
 import com.kurtuba.auth.utils.TokenUtils;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
+import java.util.List;
 
 @RestController
 @RequestMapping("auth")
+@RequiredArgsConstructor
 public class LoginController {
 
-    final
-    UserService userService;
-
-    final
-    LoginService loginService;
-
-    final
-    RegisteredClientRepository registeredClientRepository;
-
-    final
-    TokenUtils tokenUtils;
-
-    public LoginController(UserService userService, LoginService loginService, RegisteredClientRepository registeredClientRepository, TokenUtils tokenUtils) {
-        this.userService = userService;
-        this.loginService = loginService;
-        this.registeredClientRepository = registeredClientRepository;
-        this.tokenUtils = tokenUtils;
-    }
+    private final LoginService loginService;
+    private final RegisteredClientRepository registeredClientRepository;
+    private final TokenUtils tokenUtils;
 
     @PostMapping("/login")
     public ResponseEntity login(@Valid @RequestBody LoginCredentialsDto loginCredentials) {
+
+        //----------SET REGISTERED CLIENT----------
+        // if no client info is present then use default client
         if(!StringUtils.hasLength(loginCredentials.getClientId())){
-            // if no client info is present then use default client
-            RegisteredClient defaultClient = registeredClientRepository.findByClientType(RegisteredClientType.DEFAULT)
-                    .get(0);
+            List<RegisteredClient> defaultClientList =
+                    registeredClientRepository.findByClientType(RegisteredClientType.DEFAULT);
+            if(defaultClientList.isEmpty()){
+                //if there is no default client, then throw exception
+                throw new BusinessLogicException(ErrorEnum.AUTH_CLIENT_INVALID);
+            }
+            RegisteredClient defaultClient = defaultClientList.getFirst();
             loginCredentials.setClientId(defaultClient.getClientId());
             loginCredentials.setClientSecret(defaultClient.getClientSecret());
         }
+
+        // ----------LOGIN----------
         //throws exception if authentication fails
         //no exception means successful authentication. Generate token and return
         TokensResponseDto tokenDto = loginService.authenticateAndGetTokens(loginCredentials.getEmailMobile(),
@@ -105,7 +104,7 @@ public class LoginController {
                 .body(TokensResponseDto.builder()
                         .accessToken(tokenUtils.generateToken(client.getId(), client.getAuds(),
                                 client.getScopes(),
-                                Duration.ofMinutes(client.getAccessTokenTtlMinutes())))
+                                Duration.ofMinutes(client.getAccessTokenTtlMinutes()), client.getClientId()))
                         .build());
 
     }

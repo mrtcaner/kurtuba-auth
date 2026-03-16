@@ -14,8 +14,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Entity
@@ -23,7 +24,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "user")
+@Table(name = "users")
 public class User implements Serializable {
     private static final long serialVersionUID = 1L;
     @Id
@@ -42,7 +43,7 @@ public class User implements Serializable {
     private String username;
 
     @Nullable
-    private LocalDateTime birthdate;
+    private Instant birthdate;
 
     @Nullable
     @MobileNumber(notBlank = false)
@@ -81,11 +82,11 @@ public class User implements Serializable {
     private boolean mobileVerified;
 
     @Nullable
-    private LocalDateTime lastLoginAttempt;
+    private Instant lastLoginAttempt;
 
 
     @NotNull
-    private LocalDateTime createdDate;
+    private Instant createdDate;
 
     @Override
     public boolean equals(Object obj) {

@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Data
 @Builder
@@ -19,14 +19,14 @@ public class LocalizationMessageResponseDto {
     private String languageCode;
     private String key;
     private String message;
-    private LocalDateTime createdDate;
-    private LocalDateTime updatedDate;
+    private Instant createdDate;
+    private Instant updatedDate;
 
     public static LocalizationMessageResponseDto fromLocalization(LocalizationMessage localizationMessage){
         return LocalizationMessageResponseDto.builder()
                 .id(localizationMessage.getId())
                 .languageCode(localizationMessage.getLanguageCode())
-                .key(localizationMessage.getKey())
+                .key(localizationMessage.getMessageKey())
                 .message(localizationMessage.getMessage())
                 .createdDate(localizationMessage.getCreatedDate())
                 .updatedDate(localizationMessage.getUpdatedDate())

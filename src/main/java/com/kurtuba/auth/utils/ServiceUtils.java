@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Component
 public class ServiceUtils {
@@ -46,7 +46,7 @@ public class ServiceUtils {
             throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_CODE_EXPIRED);
         }
 
-        if (userMetaChange.getExpirationDate().isBefore(LocalDateTime.now())) {
+        if (userMetaChange.getExpirationDate().isBefore(Instant.now())) {
             throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_CODE_EXPIRED);
         }
 
@@ -97,7 +97,7 @@ public class ServiceUtils {
     @Transactional
     public void updateUserMetaChangeTryCount(UserMetaChange userMetaChange) {
         userMetaChange.setTryCount(userMetaChange.getTryCount() + 1);
-        userMetaChange.setUpdatedDate(LocalDateTime.now());
+        userMetaChange.setUpdatedDate(Instant.now());
         userMetaChangeService.update(userMetaChange);
     }
 

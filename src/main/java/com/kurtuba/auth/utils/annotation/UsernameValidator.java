@@ -31,10 +31,6 @@ public class UsernameValidator implements ConstraintValidator<UserName, String> 
         //userName is not null or empty
         Pattern pattern = Pattern.compile(Utils.USERNAME_REGEX);
         Matcher matcher = pattern.matcher(userName);
-        if(matcher.find()){
-            return true;
-        }
-
-        return false;
+        return matcher.find();
     }
 }

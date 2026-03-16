@@ -5,8 +5,11 @@ import com.kurtuba.auth.data.enums.AuthProviderType;
 import com.kurtuba.auth.data.enums.ContactType;
 import com.kurtuba.auth.data.enums.MetaOperationType;
 import com.kurtuba.auth.data.model.User;
+import com.kurtuba.auth.data.model.UserFcmToken;
 import com.kurtuba.auth.data.model.UserMetaChange;
 import com.kurtuba.auth.data.repository.LocalizationAvailableLocaleRepository;
+import com.kurtuba.auth.data.repository.RegisteredClientRepository;
+import com.kurtuba.auth.data.repository.UserFcmTokenRepository;
 import com.kurtuba.auth.data.repository.UserRepository;
 import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.error.exception.BusinessLogicException;
@@ -14,31 +17,37 @@ import com.kurtuba.auth.utils.ServiceUtils;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-
 
 import static com.kurtuba.auth.utils.Utils.generateVerificationCode;
 
 @Service
 @Validated
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
     private final UserTokenService userTokenService;
     private final MessageJobService messageJobService;
     private final UserMetaChangeService userMetaChangeService;
-    private final LocalizationAvailableLocaleRepository localizationAvailableLocaleRepository;
     private final ServiceUtils serviceUtils;
+    private final LocalizationAvailableLocaleRepository localizationAvailableLocaleRepository;
+    private final UserFcmTokenRepository userFcmTokenRepository;
+    private final RegisteredClientRepository registeredClientRepository;
 
     @Value("${kurtuba.meta-change.validity.password-reset-code.minutes}")
     private int passwordResetCodeValidityMinutes;
@@ -49,16 +58,7 @@ public class UserService {
     @Value("${kurtuba.meta-change.validity.email.change-code.minutes}")
     private int emailChangeCodeValidityMinutes;
 
-    public UserService(UserRepository userRepository, UserTokenService userTokenService,
-                       MessageJobService messageJobService, UserMetaChangeService userMetaChangeService,
-                       LocalizationAvailableLocaleRepository localizationAvailableLocaleRepository, ServiceUtils serviceUtils) {
-        this.userRepository = userRepository;
-        this.userTokenService = userTokenService;
-        this.messageJobService = messageJobService;
-        this.userMetaChangeService = userMetaChangeService;
-        this.localizationAvailableLocaleRepository = localizationAvailableLocaleRepository;
-        this.serviceUtils = serviceUtils;
-    }
+
 
     @Transactional
     public void changePassword(@Valid PasswordChangeDto passwordChangeDto, @NotBlank String userId) {
@@ -83,10 +83,10 @@ public class UserService {
                 .metaOperationType(MetaOperationType.PASSWORD_CHANGE)
                 .contactType(ContactType.EMAIL)
                 .userId(user.getId())
-                .createdDate(LocalDateTime.now())
-                .updatedDate(LocalDateTime.now())
+                .createdDate(Instant.now())
+                .updatedDate(Instant.now())
                 .executed(true)
-                .expirationDate(LocalDateTime.now())
+                .expirationDate(Instant.now())
                 .build());
 
         //todo: send sms if no email? currently no regular sms sending capability
@@ -185,8 +185,8 @@ public class UserService {
                 .contactType(ContactType.EMAIL)
                 .meta(email)
                 .executed(false)
-                .createdDate(LocalDateTime.now())
-                .expirationDate(LocalDateTime.now().plusMinutes(emailChangeCodeValidityMinutes))
+                .createdDate(Instant.now())
+                .expirationDate(Instant.now().plus(Duration.ofMinutes(emailChangeCodeValidityMinutes)))
                 .maxTryCount(byCode ? metaChangeEmailMaxTryCount : null)
                 .tryCount(byCode ? 0 : null)
                 .code(byCode ? generateVerificationCode() : null)
@@ -252,12 +252,12 @@ public class UserService {
                 .metaOperationType(MetaOperationType.PASSWORD_RESET)
                 .contactType(emailMobile.contains("@") ? ContactType.EMAIL : ContactType.MOBILE)
                 .executed(false)
-                .expirationDate(LocalDateTime.now().plusMinutes(passwordResetCodeValidityMinutes))
+                .expirationDate(Instant.now().plus(Duration.ofMinutes(passwordResetCodeValidityMinutes)))
                 .maxTryCount(maxTryCount)
                 .tryCount(maxTryCount == null ? null : 0)
                 .code(code)
                 .linkParam(linkParam)
-                .createdDate(LocalDateTime.now())
+                .createdDate(Instant.now())
                 .userId(user.getId())
                 .build();
         userMetaChangeService.create(metaChange);
@@ -324,11 +324,78 @@ public class UserService {
         user.setName(userPersonalInfoDto.getName());
         user.setSurname(userPersonalInfoDto.getSurname());
         user.setBirthdate(userPersonalInfoDto.getBirthdate() != null ?
-                LocalDate.parse(userPersonalInfoDto.getBirthdate(),
+                          LocalDate.parse(userPersonalInfoDto.getBirthdate(),
                 DateTimeFormatter.ofPattern("dd/MM/yyyy",
-                Locale.ENGLISH)).atStartOfDay() : null);
+                Locale.ENGLISH)).atStartOfDay().toInstant(ZoneOffset.UTC) : null);
         user.setGender(userPersonalInfoDto.getGender());
         userRepository.save(user);
+    }
+
+    @Transactional
+    public void updateUserLang(@NotBlank String userId,@NotBlank String langCode) {
+        if(localizationAvailableLocaleRepository.findByLanguageCode(langCode).isEmpty()){
+            throw new BusinessLogicException(ErrorEnum.LOCALIZATION_UNSUPPORTED_LANGUAGE);
+        }
+        userRepository.getUserById(userId).ifPresent(user -> {
+            user.getUserSetting().getLocale().setLanguageCode(langCode);
+            userRepository.save(user);
+        });
+    }
+
+    @Transactional
+    public void upsertUserFcmToken(@NotBlank String userId, @NotBlank String fcmToken,
+                                   @NotBlank String jti, @NotBlank String firebaseInstallationId) {
+        getUserById(userId).orElseThrow(() -> new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST));
+
+        String registeredClientId = userTokenService.findByJTI(jti).orElseThrow().getClientId();
+
+        try {
+        // delete existing records with the same token
+        Optional<UserFcmToken> existingFcmToken =
+                userFcmTokenRepository.findByFcmToken(fcmToken);
+        if (existingFcmToken.isPresent()) {
+            UserFcmToken existing = existingFcmToken.get();
+            if(existing.getUserId().equals(userId) && existing.getFirebaseInstallationId().equals(firebaseInstallationId)) {
+                // nothing to update
+                return;
+            }
+            if (!existing.getFirebaseInstallationId().equals(firebaseInstallationId)) {
+                userFcmTokenRepository.delete(existing);
+                userFcmTokenRepository.flush(); // Force the delete before the update
+            }
+        }
+
+        // now we are sure the token is unique
+        // This blocks other threads from touching this specific installationId
+        UserFcmToken fcmEntry = userFcmTokenRepository.findByInstallationIdForUpdate(firebaseInstallationId)
+                                          .orElseGet(() -> UserFcmToken.builder()
+                                                                       .firebaseInstallationId(firebaseInstallationId)
+                                                                       .build());
+
+        // The "Eventual Setter" logic: Just overwrite with the latest
+        fcmEntry.setUserId(userId);
+        fcmEntry.setFcmToken(fcmToken);
+        fcmEntry.setRegisteredClientId(registeredClientId);
+        fcmEntry.setUpdatedAt(Instant.now());
+
+        userFcmTokenRepository.save(fcmEntry);
+        } catch (PessimisticLockingFailureException e) {
+            // Log it—this means the "Take Turns" queue was too long
+            System.out.println("Lock timeout for installationId: {}. Skipping this update as another is likely in " +
+                               "progress." + firebaseInstallationId);
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserFcmTokenResponseDto> getUserFcmTokens(@NotBlank String userId) {
+        List<UserFcmToken> userFcmTokenOpt = userFcmTokenRepository.findByUserId(userId);
+        return userFcmTokenOpt.stream().map(userFcmToken -> UserFcmTokenResponseDto.builder()
+                                                                                   .fcmToken(userFcmToken.getFcmToken())
+                                                                                   .userId(userFcmToken.getUserId())
+                                                                                   .clientId(userFcmToken.getRegisteredClientId())
+                                                                                   .clientType(registeredClientRepository.findByClientId(userFcmToken.getRegisteredClientId()).get().getClientType().name())
+                                                                                   .updatedAt(userFcmToken.getUpdatedAt())
+                                                                                   .build()).toList();
     }
 
     @Transactional
@@ -363,7 +430,7 @@ public class UserService {
         user.setPassword(new BCryptPasswordEncoder().encode(newPassword));
         userRepository.save(user);
         userMetaChange.setExecuted(true);
-        userMetaChange.setUpdatedDate(LocalDateTime.now());
+        userMetaChange.setUpdatedDate(Instant.now());
         userMetaChangeService.create(userMetaChange);
 
         if (StringUtils.hasLength(user.getEmail())) {
@@ -437,7 +504,7 @@ public class UserService {
         user.setEmailVerified(true);
         userRepository.save(user);
         userMetaChange.setExecuted(true);
-        userMetaChange.setUpdatedDate(LocalDateTime.now());
+        userMetaChange.setUpdatedDate(Instant.now());
         userMetaChangeService.update(userMetaChange);
 
         return UserDto.fromUser(user);
@@ -469,8 +536,8 @@ public class UserService {
                 .contactType(ContactType.MOBILE)
                 .meta(mobile)
                 .executed(false)
-                .createdDate(LocalDateTime.now())
-                .expirationDate(LocalDateTime.now().plusMinutes(emailChangeCodeValidityMinutes))
+                .createdDate(Instant.now())
+                .expirationDate(Instant.now().plus(Duration.ofMinutes(emailChangeCodeValidityMinutes)))
                 .maxTryCount(metaChangeSmsMaxTryCount)
                 .tryCount(0)
                 .code(null)
@@ -524,7 +591,7 @@ public class UserService {
         user.setMobileVerified(true);
         userRepository.save(user);
         userMetaChange.setExecuted(true);
-        userMetaChange.setUpdatedDate(LocalDateTime.now());
+        userMetaChange.setUpdatedDate(Instant.now());
         userMetaChangeService.update(userMetaChange);
 
         return UserDto.fromUser(user);

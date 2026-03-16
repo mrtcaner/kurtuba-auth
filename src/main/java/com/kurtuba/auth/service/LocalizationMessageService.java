@@ -13,7 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -37,21 +37,21 @@ public class LocalizationMessageService {
     }
 
     public List<LocalizationMessage> findByLanguageCode(String languageCode) {
-        return (List<LocalizationMessage>) localizationMessageRepository.findByLanguageCode(languageCode);
+        return localizationMessageRepository.findByLanguageCode(languageCode);
     }
 
     public List<LocalizationMessage> findByKey(String key) {
-        return (List<LocalizationMessage>) localizationMessageRepository.findByKey(key);
+        return localizationMessageRepository.findByMessageKey(key);
     }
 
     @Cacheable(value = "localization", key = "#languageCode + '_' + #key")
     public Optional<LocalizationMessage> findByLanguageCodeAndKeyAndReturnOptional(String languageCode, String key) {
-        return localizationMessageRepository.findByLanguageCodeAndKey(languageCode, key);
+        return localizationMessageRepository.findByLanguageCodeAndMessageKey(languageCode, key);
     }
 
-    @Cacheable(value = "localization", key = "#languageCode + '_' + #countryCode")
-    public LocalizationMessage findByLanguageCodeAndKey(String languageCode, String countryCode) {
-        return localizationMessageRepository.findByLanguageCodeAndKey(languageCode, countryCode).orElseThrow(() ->
+    @Cacheable(value = "localization", key = "#languageCode + '_' + #messageKey")
+    public LocalizationMessage findByLanguageCodeAndMessageKey(String languageCode, String messageKey) {
+        return localizationMessageRepository.findByLanguageCodeAndMessageKey(languageCode, messageKey).orElseThrow(() ->
                 new BusinessLogicException(ErrorEnum.LOCALIZATION_INVALID_RESOURCE_PARAMETER));
     }
 
@@ -65,9 +65,9 @@ public class LocalizationMessageService {
         return localizationMessageRepository.save(LocalizationMessage.builder()
 
                 .languageCode(localizationMessageDto.getLanguageCode())
-                .key(localizationMessageDto.getKey())
+                .messageKey(localizationMessageDto.getKey())
                 .message(localizationMessageDto.getMessage())
-                .createdDate(LocalDateTime.now()).build());
+                .createdDate(Instant.now()).build());
     }
 
     @CacheEvict(value = "localization", key = "#localizationMessageDto.languageCode + '_' + #localizationMessageDto.key")
@@ -79,10 +79,10 @@ public class LocalizationMessageService {
                 LocalizationMessage.builder()
                         .id(localizationMessage.getId())
                         .languageCode(localizationMessageDto.getLanguageCode())
-                        .key(localizationMessageDto.getKey())
+                        .messageKey(localizationMessageDto.getKey())
                         .message(localizationMessageDto.getMessage())
                         .createdDate(localizationMessage.getCreatedDate())
-                        .updatedDate(LocalDateTime.now())
+                        .updatedDate(Instant.now())
                         .build());
     }
 

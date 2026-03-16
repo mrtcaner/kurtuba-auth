@@ -29,7 +29,7 @@ public class LocalizationMessageDto {
         return LocalizationMessageDto.builder()
                 .id(localizationMessage.getId())
                 .languageCode(localizationMessage.getLanguageCode())
-                .key(localizationMessage.getKey())
+                .key(localizationMessage.getMessageKey())
                 .message(localizationMessage.getMessage())
                 .build();
     }

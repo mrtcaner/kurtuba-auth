@@ -8,7 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Data
@@ -31,7 +31,7 @@ public class LocalizationAvailableLocale {
     private String countryCode;
 
     @NotNull
-    private LocalDateTime createdDate;
+    private Instant createdDate;
 
-    private LocalDateTime updatedDate;
+    private Instant updatedDate;
 }

@@ -28,8 +28,6 @@ import org.springframework.util.StringUtils;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
@@ -125,6 +123,7 @@ public class UserTokenService {
             throw new BusinessLogicException(ErrorEnum.AUTH_REFRESH_TOKEN_INVALID);
         }
 
+        consumeRefreshToken(result.getUserToken());
         return getTokens(result);
     }
 
@@ -137,8 +136,6 @@ public class UserTokenService {
             throw new BusinessLogicException(ErrorEnum.USER_INVALID_STATE);
         }
 
-        // delete old tokens
-        userTokenRepository.delete(result.getUserToken());
         // save new tokens
         Set<String> roles = null;
         if (result.getRegisteredClient().isScopeEnabled()) {
@@ -165,16 +162,14 @@ public class UserTokenService {
     public TokensResponseDto createAndSaveTokens(String userId, String clientId, Set<String> auds, Set<String> scopes,
                                                  Duration accessTokenValidityDuration, Duration refreshTokenValidityDuration) {
 
-        String newAccessToken = tokenUtils.generateToken(userId, auds, scopes, accessTokenValidityDuration);
+        String newAccessToken = tokenUtils.generateToken(userId, auds, scopes, accessTokenValidityDuration, clientId);
         String newRefreshToken = null;
         if (refreshTokenValidityDuration != null) {
             newRefreshToken = tokenUtils.generateRefreshToken();
         }
         JsonObject decodedNewToken = TokenUtils.decodeTokenPayload(newAccessToken);
 
-        Instant instant = Instant.ofEpochSecond(Long.parseLong(decodedNewToken.get(JWTClaimType.EXP.getDisplayName()).getAsString()));
-        ZoneId zoneId = ZoneId.systemDefault();
-        LocalDateTime expirationDate = instant.atZone(zoneId).toLocalDateTime();
+        Instant expirationDate = Instant.ofEpochSecond(Long.parseLong(decodedNewToken.get(JWTClaimType.EXP.getDisplayName()).getAsString()));
 
         UserToken newUserToken = UserToken.builder()
                 .jti(decodedNewToken.get(JWTClaimType.JTI.getDisplayName()).getAsString())
@@ -185,10 +180,10 @@ public class UserTokenService {
                 .refreshToken(newRefreshToken != null ?
                         new BCryptPasswordEncoder().encode(new String(Base64.getDecoder().decode(newRefreshToken))) :
                         null)
-                .refreshTokenExp(newRefreshToken != null ? LocalDateTime.now().plus(refreshTokenValidityDuration) :
+                .refreshTokenExp(newRefreshToken != null ? Instant.now().plus(refreshTokenValidityDuration) :
                         null)
                 .scopes(CollectionUtils.isEmpty(scopes) ? null : scopes.stream().toList())
-                .createdDate(LocalDateTime.now())
+                .createdDate(Instant.now())
                 .blocked(false)
                 .build();
 
@@ -203,11 +198,24 @@ public class UserTokenService {
     private AccessTokenValidationResult validateAccessToken(String accessToken, String clientId, String clientSecret) {
         // token validation
         JsonObject decodedToken = TokenUtils.decodeTokenPayload(accessToken);
-        UserToken userToken = getUserTokenWithNotExpiredRefreshToken(decodedToken.get(JWTClaimType.JTI.getDisplayName()).getAsString())
-                .orElseThrow(() -> new BusinessLogicException(ErrorEnum.AUTH_INVALID_TOKEN));
+        UserToken userToken =
+                userTokenRepository.findByJti((decodedToken.get(JWTClaimType.JTI.getDisplayName()).getAsString()))
+                                   .orElseThrow(() -> new BusinessLogicException(ErrorEnum.AUTH_ACCESS_TOKEN_INVALID));
+
+        if(userToken.getRefreshTokenExp() == null || userToken.getRefreshTokenExp().isBefore(Instant.now())){
+            throw new BusinessLogicException(ErrorEnum.AUTH_REFRESH_TOKEN_EXPIRED);
+        }
+
+        if(userToken.isRefreshTokenUsed()){
+            throw new BusinessLogicException(ErrorEnum.AUTH_REFRESH_TOKEN_USED);
+        }
 
         if(userToken.isBlocked()){
-            new BusinessLogicException(ErrorEnum.AUTH_TOKEN_BLOCKED);
+            throw new BusinessLogicException(ErrorEnum.AUTH_TOKEN_BLOCKED);
+        }
+
+        if(!userToken.getClientId().equals(clientId)){
+            throw new BusinessLogicException(ErrorEnum.AUTH_REFRESH_CLIENT_MISMATCH);
         }
 
         // token will be verified with the client used for its creation
@@ -243,17 +251,6 @@ public class UserTokenService {
         return claims;
     }
 
-    private Optional<UserToken> getNotBlockedUserToken(String jti) {
-        return userTokenRepository.findByJtiAndBlockedAndRefreshTokenExpAfter(
-                jti, false, LocalDateTime.now());
-    }
-
-    private Optional<UserToken> getUserTokenWithNotExpiredRefreshToken(String jti) {
-        return userTokenRepository.findByJtiAndRefreshTokenExpAfter(
-                jti, LocalDateTime.now());
-    }
-
-
     @Transactional
     public TokensResponseDto refreshWebClientWithCookieTokens(String accessToken, String clientId, String clientSecret) {
 
@@ -269,8 +266,16 @@ public class UserTokenService {
             throw new BusinessLogicException(ErrorEnum.AUTH_CLIENT_INVALID);
         }
 
+        consumeRefreshToken(result.getUserToken());
         return getTokens(result);
 
+    }
+
+    private void consumeRefreshToken(UserToken userToken) {
+        int updatedRows = userTokenRepository.markRefreshTokenAsUsedIfAvailable(userToken.getId(), Instant.now());
+        if (updatedRows == 0) {
+            throw new BusinessLogicException(ErrorEnum.AUTH_REFRESH_TOKEN_USED);
+        }
     }
 
     @Transactional

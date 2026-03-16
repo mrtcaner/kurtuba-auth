@@ -5,10 +5,13 @@ import com.kurtuba.auth.data.dto.SMSVerificationCheckDto;
 import com.kurtuba.auth.data.dto.SMSVerificationDeleteDto;
 import com.kurtuba.auth.data.dto.SMSVerificationRequestDto;
 import com.kurtuba.auth.service.ISMSService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Arrays;
 
 
 @RestController
@@ -44,6 +47,16 @@ public class SmsController {
         return ResponseEntity.ok(smsService.deleteVerification(smsRequestDto.getSid()));
     }
 
+    // twillio webhook
+    // currently twilio cannot serve using turkish operator numbers, so this is not properly implemented
+    @PostMapping("/message-status")
+    @ResponseBody
+    public void handleOutgoingSMSStatusChange(HttpServletRequest request) {
+        request.getParameterMap().keySet().forEach(key -> System.out.println(key + ": " +
+                                                                             Arrays.stream(request.getParameterMap().get(key)).reduce((s, s2) -> s += s2).orElse("")));
+        System.out.println("*** -------------------------------------message-status WEBHOOK" +
+                           "---------------------------------------- ***");
+    }
 
 }
 

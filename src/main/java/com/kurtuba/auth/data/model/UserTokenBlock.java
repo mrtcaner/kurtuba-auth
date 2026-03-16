@@ -7,7 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Data
@@ -27,9 +27,9 @@ public class UserTokenBlock {
     private UserToken userToken;
 
     @NotNull
-    private LocalDateTime createdDate;
+    private Instant createdDate;
 
-    private LocalDateTime expirationDate;
+    private Instant expirationDate;
 
 
 }

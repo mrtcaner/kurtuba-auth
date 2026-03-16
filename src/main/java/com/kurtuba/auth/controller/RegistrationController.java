@@ -2,6 +2,7 @@ package com.kurtuba.auth.controller;
 
 import com.kurtuba.auth.data.dto.*;
 import com.kurtuba.auth.data.enums.RegisteredClientType;
+import com.kurtuba.auth.data.model.RegisteredClient;
 import com.kurtuba.auth.data.model.UserMetaChange;
 import com.kurtuba.auth.data.repository.RegisteredClientRepository;
 import com.kurtuba.auth.error.enums.ErrorEnum;
@@ -22,6 +23,8 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("registration")
@@ -61,8 +64,14 @@ public class RegistrationController {
     @PostMapping("/other-provider")
     public ResponseEntity<TokensResponseDto> registerViaAnotherProvider(@Valid @RequestBody RegistrationOtherProviderDto newUser) {
         RegistrationDto dto = registrationService.registerByAnotherProvider(newUser);
+        List<RegisteredClient> defaultClientList =
+                registeredClientRepository.findByClientType(RegisteredClientType.DEFAULT);
+        if(defaultClientList.isEmpty()){
+            throw new BusinessLogicException(ErrorEnum.AUTH_CLIENT_INVALID);
+        }
+        RegisteredClient defaultClient = defaultClientList.getFirst();
         TokensResponseDto tokenResponseDto = loginService.authenticateAndGetTokens(dto.getEmail(), dto.getPassword(),
-                registeredClientRepository.findByClientType(RegisteredClientType.DEFAULT).get(0).getClientId(),
+                                                                                   defaultClient.getClientId(),
                 "");
         return ResponseEntity
                 .status(HttpStatusCode.valueOf(HttpStatus.CREATED_201))

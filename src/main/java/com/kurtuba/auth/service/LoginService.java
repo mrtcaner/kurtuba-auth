@@ -1,22 +1,16 @@
 package com.kurtuba.auth.service;
 
 import com.kurtuba.auth.data.dto.TokensResponseDto;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class LoginService {
 
-    final
-    UserTokenService userTokenService;
-
-    final
-    AuthenticationService authenticationService;
-
-    public LoginService(UserTokenService userTokenService, AuthenticationService authenticationService) {
-        this.userTokenService = userTokenService;
-        this.authenticationService = authenticationService;
-    }
+    private final UserTokenService userTokenService;
+    private final AuthenticationService authenticationService;
 
     @Transactional
     public TokensResponseDto authenticateAndGetTokens(String emailMobile, String pass,

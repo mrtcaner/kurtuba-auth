@@ -5,11 +5,15 @@ public enum ErrorEnum {
     GENERIC_EXCEPTION("Error",1000),
     INVALID_PARAMETER("Validation failure",1001),
     RESOURCE_NOT_FOUND("Resource not found",1002),
-    AUTH_INVALID_TOKEN("Invalid token",1100),
-    AUTH_REFRESH_TOKEN_INVALID("Invalid refresh token",1101),
+    TOO_MANY_REQUESTS("Too Many Requests",1003),
+    AUTH_ACCESS_TOKEN_INVALID("Invalid access token", 1100),//doesn't exist in db or wrong signature
+    AUTH_REFRESH_TOKEN_INVALID("Invalid refresh token",1101),//doesn't exist in db
     AUTH_CLIENT_INVALID("Invalid client",1102),
     AUTH_CLIENT_INVALID_CREDENTIALS("Invalid client credentials",1103),
-    AUTH_TOKEN_BLOCKED("Token blocked",1104),
+    AUTH_TOKEN_BLOCKED("Token blocked", 1104),
+    AUTH_REFRESH_TOKEN_EXPIRED("Refresh token expired",1105),
+    AUTH_REFRESH_TOKEN_USED("Refresh token already used",1106),
+    AUTH_REFRESH_CLIENT_MISMATCH("Initial clientId is different than current clientId",1107),
     LOGIN_INVALID_CREDENTIALS("Invalid credentials",1200),
     LOGIN_USER_LOCKED("Account locked",1201),
     USER_DOESNT_EXIST("User doesn't exist", 1300),
@@ -38,6 +42,7 @@ public enum ErrorEnum {
     LOCALIZATION_ALREADY_EXISTS("Localization already exits",1501),
     LOCALIZATION_INVALID_RESOURCE_PARAMETER("Invalid resource parameter (languageCode-key)",1502),
     LOCALIZATION_UNSUPPORTED_REGION("Unsupported region",1503),
+    LOCALIZATION_UNSUPPORTED_LANGUAGE("Unsupported language",1504),
     ROLE_INVALID("Invalid role",1600),
     CONTENT_POST_CONTENT_CANNOT_BE_EMPTY("Content cannot be empty", 1700),
     CONTENT_POST_CAN_REPOST_ONCE("", 1701),
@@ -64,8 +69,8 @@ public enum ErrorEnum {
     SOCIAL_USER_FOLLOW_ALREADY_FOLLOWING("User already following intended user",1801);
 
 
-    private String message;
-    private Integer code;
+    private final String message;
+    private final Integer code;
 
     ErrorEnum(String message, int code){
         this.message = message;

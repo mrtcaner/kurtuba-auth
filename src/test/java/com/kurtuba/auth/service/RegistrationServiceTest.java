@@ -19,13 +19,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.util.StringUtils;
 
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
@@ -105,24 +105,24 @@ public class RegistrationServiceTest {
                     .userSetting(userSetting)
                     .userRoles(List.of(userRole))
                     .birthdate(null)
-                    .createdDate(LocalDateTime.now())
+                    .createdDate(Instant.now())
                     .build();
             userRole.setUser(savedUser);
             userSetting.setUser(savedUser);
 
             emailActivationCodeUserMetaChange = UserMetaChange.builder()
-                    .id(userMetaChangeByCodeId)
-                    .meta(registrationDto.getEmail())
-                    .metaOperationType(MetaOperationType.ACCOUNT_ACTIVATION)
-                    .contactType(ContactType.EMAIL)
-                    .userId(savedUser.getId())
-                    .maxTryCount(3)
-                    .tryCount(0)
-                    .code("123456")
-                    .executed(false)
-                    .expirationDate(LocalDateTime.now().plusHours(24)) // todo: get expiration time properly
-                    .createdDate(LocalDateTime.now())
-                    .build();
+                                                              .id(userMetaChangeByCodeId)
+                                                              .meta(registrationDto.getEmail())
+                                                              .metaOperationType(MetaOperationType.ACCOUNT_ACTIVATION)
+                                                              .contactType(ContactType.EMAIL)
+                                                              .userId(savedUser.getId())
+                                                              .maxTryCount(3)
+                                                              .tryCount(0)
+                                                              .code("123456")
+                                                              .executed(false)
+                                                              .expirationDate(Instant.now().plus(Duration.ofHours(24))) // todo: get expiration time properly
+                                                              .createdDate(Instant.now())
+                                                              .build();
 
             emailActivationLinkUserMetaChange = UserMetaChange.builder()
                     .id(userMetaChangeByLinkId)
@@ -132,8 +132,8 @@ public class RegistrationServiceTest {
                     .userId(savedUser.getId())
                     .linkParam("link")
                     .executed(false)
-                    .expirationDate(LocalDateTime.now().plusHours(24)) // todo: get expiration time properly
-                    .createdDate(LocalDateTime.now())
+                    .expirationDate(Instant.now().plus(Duration.ofHours(24))) // todo: get expiration time properly
+                    .createdDate(Instant.now())
                     .build();
 
             when(userService.saveUser(any(User.class))).then(invocationOnMock -> {
@@ -158,6 +158,11 @@ public class RegistrationServiceTest {
                 return savedUser;
             });
 
+            when(userService.getUserByEmail(registrationDto.getEmail()))
+                    .thenReturn(Optional.empty(), Optional.of(savedUser));
+            when(userService.getUserByMobile(registrationDto.getMobile()))
+                    .thenReturn(Optional.empty());
+
             when(userMetaChangeService.create((any(UserMetaChange.class)))).then(invocationOnMock -> {
                 UserMetaChange usrMtChange = invocationOnMock.getArgument(0);
                 if (StringUtils.hasLength(usrMtChange.getCode())) {
@@ -177,7 +182,7 @@ public class RegistrationServiceTest {
             when(userRoleService.create(any(UserRole.class))).then(invocationOnMock -> {
                 UserRole usrRole = invocationOnMock.getArgument(0);
                 usrRole.setId("userRoleId");
-                usrRole.setCreatedDate(LocalDateTime.now());
+                usrRole.setCreatedDate(Instant.now());
                 return usrRole;
             });
         }
@@ -185,7 +190,7 @@ public class RegistrationServiceTest {
         @Test
         public void createUser_whenGivenValidRegistrationDto_thenReturnSavedUser() {
             doNothing().when(messageJobService).sendAccountActivationCodeMail(anyString(), anyString(), anyString(),
-                    anyString());
+                    nullable(String.class));
             //default registrationDto is set to account activation by email using code
             String metaChangeId = registrationService.register(registrationDto).getId();
             assertEquals(metaChangeId, emailActivationCodeUserMetaChange.getId());
@@ -194,7 +199,7 @@ public class RegistrationServiceTest {
         @Test
         public void createUser_whenGivenValidRegistrationDtoWithVerifyByLink_thenReturnSavedUser() {
             doNothing().when(messageJobService).sendAccountActivationLinkMail(anyString(), anyString(), anyString(),
-                    anyString());
+                    nullable(String.class));
             //default registrationDto is set to account activation by email using code
             registrationDto.setVerificationByCode(false);
             String metaChangeId = registrationService.register(registrationDto).getId();

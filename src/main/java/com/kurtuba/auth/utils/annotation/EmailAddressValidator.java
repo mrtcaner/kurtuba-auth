@@ -31,10 +31,6 @@ public class EmailAddressValidator implements ConstraintValidator<EmailAddress, 
         //emailAddress is not null or empty
         Pattern pattern = Pattern.compile(Utils.EMAIL_REGEX);
         Matcher matcher = pattern.matcher(emailAddress);
-        if(matcher.find()){
-            return true;
-        }
-
-        return false;
+        return matcher.find();
     }
 }

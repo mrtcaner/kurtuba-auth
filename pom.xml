@@ -5,34 +5,21 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.3.5</version>
+		<version>3.5.11</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.kurtuba</groupId>
-	<artifactId>auth</artifactId>
+	<groupId>com.kurtuba.auth</groupId>
+	<artifactId>kurtuba_auth</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>auth</name>
+	<name>kurtuba_auth</name>
 	<description>Kurtuba Auth Server</description>
 	<properties>
-		<java.version>17</java.version>
+		<java.version>21</java.version>
 		<maven.surefire.version>3.5.2</maven.surefire.version>
 		<maven.failsafe.version>3.5.2</maven.failsafe.version>
 		<maven.build.helper.version>3.6.0</maven.build.helper.version>
-		<jacoco.version>0.8.12</jacoco.version>
-		<spring-cloud-gcp.version>6.2.2</spring-cloud-gcp.version>
+		<jacoco.version>0.8.14</jacoco.version>
 	</properties>
-	<!-- The Spring Framework on Google Cloud BOM will manage spring-cloud-gcp version numbers for you. -->
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>com.google.cloud</groupId>
-				<artifactId>spring-cloud-gcp-dependencies</artifactId>
-				<version>${spring-cloud-gcp.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -61,7 +48,6 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-jdbc</artifactId>
-			<version>3.3.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
@@ -73,6 +59,15 @@
 			<artifactId>h2</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-actuator</artifactId>
@@ -93,9 +88,9 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<optional>true</optional>
+                    <groupId>org.projectlombok</groupId>
+                    <artifactId>lombok</artifactId>
+                    <version>1.18.38</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -123,11 +118,13 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webflux</artifactId>
 		</dependency>
+
 		<dependency>
 			<groupId>org.eclipse.jetty</groupId>
 			<artifactId>jetty-reactive-httpclient</artifactId>
 			<version>3.0.8</version>
 		</dependency>
+
 		<dependency>
 			<groupId>org.hibernate.validator</groupId>
 			<artifactId>hibernate-validator</artifactId>
@@ -135,14 +132,14 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-jdbc</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>org.springframework.session</groupId>
 			<artifactId>spring-session-jdbc</artifactId>
 		</dependency>
 
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
 
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
@@ -176,55 +173,62 @@
 			<version>10.6.7</version>
 		</dependency>
 
-		<!-- content dependencies start -->
-		<dependency>
-			<groupId>com.google.cloud</groupId>
-			<artifactId>spring-cloud-gcp-starter-storage</artifactId>
-			<version>${spring-cloud-gcp.version}</version>
-		</dependency>
-			<!-- content image-to-text and translation dependencies start -->
-		<dependency>
-			<groupId>com.google.cloud</groupId>
-			<artifactId>spring-cloud-gcp-starter-vision</artifactId>
-			<version>${spring-cloud-gcp.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.google.cloud</groupId>
-			<artifactId>google-cloud-translate-spring-starter</artifactId>
-			<version>${spring-cloud-gcp.version}-preview</version>
-		</dependency>
-			<!-- content image-to-text and translation dependencies end -->
-		<!-- content dependencies end -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j-core</artifactId>
+            <version>8.10.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j-redis</artifactId>
+            <version>8.10.1</version>
+        </dependency>
 
 	</dependencies>
 
 	<build>
 		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-				<configuration>
-					<excludes>
-						<exclude>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</exclude>
-					</excludes>
-				</configuration>
-			</plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
 			<plugin>
 				<groupId>io.fabric8</groupId>
-				<artifactId>docker-maven-plugin</artifactId>
-				<version>0.45.1</version>
+                <artifactId>docker-maven-plugin</artifactId>
+                <version>0.48.1</version>
 				<configuration>
-					<verbose>true</verbose>
-					<pushRegistry>192.168.1.114:5000/repo_dev</pushRegistry>
+                    <registry>192.168.1.114:5000</registry>
 					<images>
 						<image>
 							<name>${project.name}:${project.version}</name>
 							<alias>${project.name}</alias>
 							<build>
-								<dockerFileDir>${project.basedir}</dockerFileDir>
+                                <contextDir>${project.basedir}</contextDir>
+                                <dockerFile>${project.basedir}/docker/amd64/Dockerfile</dockerFile>
 							</build>
 							<run>
 								<namingStrategy>alias</namingStrategy>
@@ -235,17 +239,6 @@
 						</image>
 					</images>
 				</configuration>
-				<executions>
-					<execution>
-						<id>default</id>
-						<goals>
-							<goal>build</goal>
-							<goal>push</goal>
-							<!--<goal>start</goal>
-							<goal>stop</goal>-->
-						</goals>
-					</execution>
-				</executions>
 			</plugin>
 
 
@@ -413,5 +406,28 @@
 			</plugin>
 		</plugins>
 	</build>
+
+	<profiles>
+		<profile>
+			<id>docker-image</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>io.fabric8</groupId>
+						<artifactId>docker-maven-plugin</artifactId>
+						<executions>
+							<execution>
+								<id>default</id>
+								<goals>
+									<goal>build</goal>
+									<goal>push</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 </project>

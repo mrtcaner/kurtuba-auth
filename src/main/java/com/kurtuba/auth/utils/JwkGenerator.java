@@ -31,7 +31,8 @@ import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.text.ParseException;
 import java.time.Instant;
-import java.util.*;
+import java.util.Date;
+import java.util.UUID;
 
 /**
  *
@@ -39,7 +40,7 @@ import java.util.*;
 class JwkGenerator {
 
 
-    public static void main(String args[]) throws JoseException, ParseException, JOSEException, URISyntaxException, NoSuchAlgorithmException, InvalidKeySpecException {
+    public static void main(String[] args) throws JoseException, ParseException, JOSEException, URISyntaxException, NoSuchAlgorithmException, InvalidKeySpecException {
         /*Map<Integer,String> str = new HashMap<>();
         str.put(2,"two");
         str.put(1,"one");

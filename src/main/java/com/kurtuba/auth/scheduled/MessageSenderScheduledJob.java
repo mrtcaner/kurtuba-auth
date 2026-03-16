@@ -5,17 +5,19 @@ import com.kurtuba.auth.data.enums.MessageJobStateType;
 import com.kurtuba.auth.data.enums.MessageServiceProviderType;
 import com.kurtuba.auth.data.model.EmailDetails;
 import com.kurtuba.auth.data.model.MessageJob;
+import com.kurtuba.auth.service.EmailService;
 import com.kurtuba.auth.service.ISMSService;
 import com.kurtuba.auth.service.MessageJobService;
-import com.kurtuba.auth.service.EmailService;
 import com.twilio.rest.verify.v2.service.Verification;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Component
+@ConditionalOnProperty(prefix = "kurtuba.jobs", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class MessageSenderScheduledJob {
 
     final
@@ -36,7 +38,7 @@ public class MessageSenderScheduledJob {
     @Scheduled(fixedDelay = 5000)
     public void sendEmail() {
         List<MessageJob> jobs = messageJobService.findByStateAndContactTypeAndSendAfterDateBefore(MessageJobStateType.PENDING,
-                ContactType.EMAIL, LocalDateTime.now());
+                ContactType.EMAIL, Instant.now());
         jobs.forEach(emailJob -> {
             try{
                 emailService.sendMultipartMail(EmailDetails.builder()
@@ -45,7 +47,7 @@ public class MessageSenderScheduledJob {
                         .subject(emailJob.getSubject())
                         .msgBody(emailJob.getMessage())
                         .build());
-                emailJob.setUpdatedDate(LocalDateTime.now());
+                emailJob.setUpdatedDate(Instant.now());
                 emailJob.setTryCount(emailJob.getTryCount()+1);
                 emailJob.setState(MessageJobStateType.SUCCESS);
             }catch (Exception e){
@@ -54,7 +56,7 @@ public class MessageSenderScheduledJob {
                 if(emailJob.getTryCount() >= emailJob.getMaxTryCount()){
                     emailJob.setState(MessageJobStateType.FAILED);
                 }
-                emailJob.setUpdatedDate(LocalDateTime.now());
+                emailJob.setUpdatedDate(Instant.now());
             }
             messageJobService.saveMessageJob(emailJob);
         });
@@ -69,12 +71,12 @@ public class MessageSenderScheduledJob {
     public void sendTwilioVerificationSMS() {
         List<MessageJob> jobs = messageJobService
                 .findByStateAndContactTypeAndMessageServiceProviderTypeAndSendAfterDateBefore(MessageJobStateType.PENDING,
-                ContactType.MOBILE, MessageServiceProviderType.TWILIO_VERIFY, LocalDateTime.now());
+                ContactType.MOBILE, MessageServiceProviderType.TWILIO_VERIFY, Instant.now());
         jobs.forEach(smsJob -> {
             try{
                 Verification verification = smsService.sendVerificationSMS(smsJob.getRecipient());
                 smsJob.setSid(verification.getSid());
-                smsJob.setUpdatedDate(LocalDateTime.now());
+                smsJob.setUpdatedDate(Instant.now());
                 smsJob.setTryCount(smsJob.getTryCount()+1);
                 smsJob.setState(MessageJobStateType.SUCCESS);
                 messageJobService.saveMessageJob(smsJob);
@@ -86,7 +88,7 @@ public class MessageSenderScheduledJob {
                 if(smsJob.getTryCount() >= smsJob.getMaxTryCount()){
                     smsJob.setState(MessageJobStateType.FAILED);
                 }
-                smsJob.setUpdatedDate(LocalDateTime.now());
+                smsJob.setUpdatedDate(Instant.now());
             }
             messageJobService.saveMessageJob(smsJob);
         });

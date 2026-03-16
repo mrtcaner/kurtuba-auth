@@ -10,7 +10,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Optional;
 
 @Service
@@ -39,7 +40,7 @@ public class UserMetaChangeService {
             //get user's failed attempts done by mobile verify in last 10 minutes
             if (!CollectionUtils.isEmpty(userMetaChangeRepository
                     .getUsersFailedMobileVerificationAttemptsAfterDate(userMetaChange.getUserId(),
-                    LocalDateTime.now().minusMinutes(11)))) {
+                    Instant.now().minus(Duration.ofMinutes(11))))) {
                 throw new BusinessLogicException(ErrorEnum.USER_META_CHANGE_CODE_SMS_TWILIO_TOO_MANY_RESEND);
             }
         }
@@ -70,7 +71,7 @@ public class UserMetaChangeService {
     public Optional<UserMetaChange> findActiveMetaChangeOperationForUser(String userId,
                                                                          MetaOperationType metaOperationType) {
         return userMetaChangeRepository.findByUserIdAndMetaOperationTypeAndExpirationDateAfterAndExecutedIsFalse(userId,
-                metaOperationType, LocalDateTime.now());
+                metaOperationType, Instant.now());
     }
 
 }

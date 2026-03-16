@@ -1,17 +1,16 @@
 package com.kurtuba.auth.data.repository;
 
 import com.kurtuba.auth.data.model.UserToken;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.repository.query.Param;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 public interface UserTokenRepository extends CrudRepository<UserToken, String> {
-
-    Optional<UserToken> findByJtiAndBlockedAndRefreshTokenExpAfter(String jti, boolean blocked, LocalDateTime exp);
-
-    Optional<UserToken> findByJtiAndRefreshTokenExpAfter(String jti, LocalDateTime exp);
 
     List<UserToken> findAllByUserId(String userId);
 
@@ -20,5 +19,17 @@ public interface UserTokenRepository extends CrudRepository<UserToken, String> {
     Optional<UserToken> findByJti(String jti);
 
     Optional<UserToken> findByJtiAndBlocked(String jti, boolean blocked);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+            update UserToken ut
+            set ut.refreshTokenUsed = true
+            where ut.id = :tokenId
+              and ut.refreshTokenUsed = false
+              and ut.blocked = false
+              and ut.refreshTokenExp is not null
+              and ut.refreshTokenExp >= :now
+            """)
+    int markRefreshTokenAsUsedIfAvailable(@Param("tokenId") String tokenId, @Param("now") Instant now);
 
 }

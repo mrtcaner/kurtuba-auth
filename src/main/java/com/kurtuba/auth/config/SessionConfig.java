@@ -6,12 +6,13 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.session.config.SessionRepositoryCustomizer;
 import org.springframework.session.jdbc.JdbcIndexedSessionRepository;
 import org.springframework.session.jdbc.config.annotation.web.http.EnableJdbcHttpSession;
+import org.springframework.util.StringUtils;
 
 @Configuration
 @EnableJdbcHttpSession
 public class SessionConfig {
 
-    @Value("${spring.datasource.hikari.schema}")
+    @Value("${spring.datasource.hikari.schema:}")
     String schema;
 
     @Bean
@@ -24,7 +25,9 @@ public class SessionConfig {
 
         @Override
         public void customize(JdbcIndexedSessionRepository sessionRepository) {
-            sessionRepository.setTableName(schema + ".SPRING_SESSION");
+            if(StringUtils.hasText(schema)){
+                sessionRepository.setTableName(schema + ".SPRING_SESSION");
+            }
         }
 
     }

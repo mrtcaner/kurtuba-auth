@@ -39,7 +39,7 @@ public class LocalizationController {
         }
 
         if (StringUtils.hasLength(lang) && StringUtils.hasLength(lang)){
-            LocalizationMessage localizationMessage = localizationMessageService.findByLanguageCodeAndKey(lang, key);
+            LocalizationMessage localizationMessage = localizationMessageService.findByLanguageCodeAndMessageKey(lang, key);
             if(localizationMessage == null){
                 return ResponseEntity.ok().body(List.of());
             }

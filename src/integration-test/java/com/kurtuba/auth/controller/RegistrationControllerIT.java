@@ -2,10 +2,16 @@ package com.kurtuba.auth.controller;
 
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.kurtuba.KurtubaApplication;
+import com.kurtuba.auth.AuthApplication;
 import com.kurtuba.auth.data.dto.RegistrationDto;
 import com.kurtuba.auth.data.dto.RegistrationResponseDto;
 import com.kurtuba.auth.data.dto.UserDto;
+import com.kurtuba.auth.data.enums.AuthoritiesType;
+import com.kurtuba.auth.data.enums.ContactType;
+import com.kurtuba.auth.data.model.LocalizationAvailableLocale;
+import com.kurtuba.auth.data.model.Role;
+import com.kurtuba.auth.data.repository.LocalizationAvailableLocaleRepository;
+import com.kurtuba.auth.data.repository.RoleRepository;
 import com.kurtuba.auth.utils.TestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,11 +24,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
-@SpringBootTest(classes = KurtubaApplication.class)
+@SpringBootTest(classes = AuthApplication.class)
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional
@@ -31,18 +39,41 @@ public class RegistrationControllerIT {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private LocalizationAvailableLocaleRepository localizationAvailableLocaleRepository;
+
+    @Autowired
+    private RoleRepository roleRepository;
+
     private ObjectMapper mapper;
 
     private RegistrationDto registrationDto;
 
 
     @BeforeEach
+    @Transactional
     public void setup() {
 
         mapper = new ObjectMapper();
         mapper.findAndRegisterModules();
 
         registrationDto = TestUtils.defaultRegistrationDtoBuilder();
+        registrationDto.setPreferredVerificationContact(ContactType.MOBILE);
+
+        if (localizationAvailableLocaleRepository.findByLanguageCodeAndCountryCode(
+                registrationDto.getLanguageCode(), registrationDto.getCountryCode()).isEmpty()) {
+            localizationAvailableLocaleRepository.save(LocalizationAvailableLocale.builder()
+                    .languageCode(registrationDto.getLanguageCode())
+                    .countryCode(registrationDto.getCountryCode())
+                    .createdDate(Instant.now())
+                    .build());
+        }
+
+        if (roleRepository.findByName(AuthoritiesType.USER.name()).isEmpty()) {
+            roleRepository.save(Role.builder()
+                    .name(AuthoritiesType.USER.name())
+                    .build());
+        }
     }
 
     @Test

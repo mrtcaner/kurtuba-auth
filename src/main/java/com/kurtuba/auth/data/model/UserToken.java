@@ -10,7 +10,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 
 @Entity
@@ -21,7 +21,6 @@ import java.util.List;
 @Table(name = "user_token")
 public class UserToken {
 
-    private static final long serialVersionUID = 1L;
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
@@ -33,7 +32,10 @@ public class UserToken {
     private String refreshToken;
 
     @NotNull
-    private LocalDateTime refreshTokenExp;
+    private Instant refreshTokenExp;
+
+    @Column(name = "refresh_token_used", nullable = false, columnDefinition = "boolean default false")
+    private boolean refreshTokenUsed;
 
     @NotBlank
     private String jti;
@@ -48,13 +50,14 @@ public class UserToken {
     @Convert(converter = StringListConverter.class)
     private List<String> scopes;
 
+    //todo: introduce enum(blocked, revoked, force-logout etc.)
     private boolean blocked;
 
     @NotNull
-    private LocalDateTime createdDate;
+    private Instant createdDate;
 
     @NotNull
-    private LocalDateTime expirationDate;
+    private Instant expirationDate;
 
 
 }

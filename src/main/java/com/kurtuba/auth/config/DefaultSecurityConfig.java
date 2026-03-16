@@ -3,6 +3,7 @@ package com.kurtuba.auth.config;
 
 import com.kurtuba.auth.config.provider.CustomAuthenticationProvider;
 import com.kurtuba.auth.config.resolver.CustomBearerTokenResolver;
+import com.kurtuba.auth.data.enums.RateLimitPublicApi;
 import com.kurtuba.auth.utils.TokenUtils;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.shaded.gson.JsonArray;
@@ -10,6 +11,8 @@ import com.nimbusds.jose.shaded.gson.JsonObject;
 import com.nimbusds.jose.shaded.gson.JsonParser;
 import org.jose4j.jwk.JsonWebKey;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -19,6 +22,7 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
@@ -31,7 +35,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.Set;
+import java.util.stream.Stream;
 
 @Configuration
 @EnableWebSecurity
@@ -57,8 +63,8 @@ public class DefaultSecurityConfig {
 
     @Bean
     public AuthenticationManager authManager(HttpSecurity http) throws Exception {
-        AuthenticationManagerBuilder authenticationManagerBuilder =
-                http.getSharedObject(AuthenticationManagerBuilder.class);
+        AuthenticationManagerBuilder authenticationManagerBuilder = http.getSharedObject(
+                AuthenticationManagerBuilder.class);
         authenticationManagerBuilder.authenticationProvider(authProvider);
         return authenticationManagerBuilder.build();
     }
@@ -71,8 +77,8 @@ public class DefaultSecurityConfig {
     @Bean
     public JwtDecoder jwtDecoder() {
         NimbusJwtDecoder.JwkSetUriJwtDecoderBuilder jwtDecoderBuilder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri);
-        jwtDecoderBuilder.jwsAlgorithms(signatureAlgorithms ->
-                signatureAlgorithms.addAll(Set.of(SignatureAlgorithm.ES256,SignatureAlgorithm.RS256)));
+        jwtDecoderBuilder.jwsAlgorithms(signatureAlgorithms -> signatureAlgorithms.addAll(
+                Set.of(SignatureAlgorithm.ES256, SignatureAlgorithm.RS256)));
         JwtDecoder jwtDecoder = jwtDecoderBuilder.build();
 
         return new JwtDecoder() {
@@ -85,18 +91,31 @@ public class DefaultSecurityConfig {
 
     /**
      * A security filter to allow web clients to be able to call public endpoints with expired tokens
+     *
      * @param http
      * @return
      * @throws Exception
      */
     @Bean
     @Order(0)
+    @ConditionalOnProperty(name = "spring.h2.console.enabled", havingValue = "true")
     public SecurityFilterChain publicEndpointsFilterChain(HttpSecurity http) throws Exception {
-        http .securityMatcher("/auth/**", "/user/password/reset/**","/user/email/verification/link/**",
-                        "/registration/**","/actuator/**", "/favicon.ico", "/v3/api-docs", "/oauth2/jwks",
-                        "/sms/**", "/message-status/**","/content/post/upload-url/**")
-                .authorizeHttpRequests((authorize) -> authorize.anyRequest().permitAll())
-                .csrf(csrfConf -> csrfConf.disable());
+        http.securityMatcher(PathRequest.toH2Console())
+            .authorizeHttpRequests((authorize) -> authorize.anyRequest().permitAll())
+            .csrf(csrf -> csrf.disable())
+            .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
+            .sessionManagement(session -> session.sessionCreationPolicy(org.springframework.security.config.http.SessionCreationPolicy.IF_REQUIRED));
+        return http.build();
+    }
+
+    @Bean
+    @Order(1)
+    public SecurityFilterChain otherPublicEndpointsFilterChain(HttpSecurity http) throws Exception {
+        http.securityMatcher(Stream.concat(Stream.of("/actuator/**", "/oauth2/jwks", "/favicon.ico", "/error"),
+                                           Arrays.stream(RateLimitPublicApi.values()).map(RateLimitPublicApi::getPattern))
+                                   .toArray(String[]::new))
+            .authorizeHttpRequests((authorize) -> authorize.anyRequest().permitAll())
+            .csrf(AbstractHttpConfigurer::disable);
         return http.build();
     }
 
@@ -108,18 +127,16 @@ public class DefaultSecurityConfig {
      */
     @Bean
     @Order(2)
-    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http)
-            throws Exception {
-        http.sessionManagement(conf->conf.maximumSessions(1))
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("login", "/error").permitAll()
-                        .anyRequest()
-                        .authenticated())
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))//will require token for certain endpoints
-                .csrf(csrfConf -> csrfConf.disable())
-                // Form login handles the redirect to the login page from the
-                // authorization server filter chain
-                .formLogin(Customizer.withDefaults());
+    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        http.sessionManagement(conf -> conf.maximumSessions(1))
+            .authorizeHttpRequests(
+                    authorize -> authorize.requestMatchers("/login","/error").permitAll().anyRequest().authenticated())
+            .oauth2ResourceServer(
+                    oauth2 -> oauth2.jwt(Customizer.withDefaults()))//will require token for certain endpoints
+            .csrf(csrfConf -> csrfConf.disable())
+            // Form login handles the redirect to the login page from the
+            // authorization server filter chain
+            .formLogin(Customizer.withDefaults());
 
         return http.build();
     }

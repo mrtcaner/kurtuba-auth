@@ -1,0 +1,126 @@
+server:
+  port: 8080
+  servlet:
+   session:
+     tracking-modes: cookie
+     persistent: false
+
+auth:
+  server:
+    issuer-url: http://localhost:8080
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        trace: false
+        web-allow-others: false
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ${auth.server.issuer-url}/oauth2/jwks
+      client:
+        registration:
+          google:
+            clientId: example-google-client-id.apps.googleusercontent.com
+            clientSecret: example-google-client-secret
+            redirect-uri: http://localhost:8080/login/oauth2/code/google
+            scope:
+              - email
+              - profile
+  mail:
+    host: localhost
+    port: 1025
+    username: example-mail-user
+    password: example-mail-password
+    protocol: smtp
+
+logging:
+  level:
+    root: info
+
+management:
+  security:
+    enabled: false
+  health:
+    mail:
+      enabled: false
+    redis:
+      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health, info, env
+
+kurtuba:
+  jobs:
+    enabled: false
+  rate-limit:
+    enabled: false
+  server:
+    url: http://localhost:8080
+  jwk:
+    file: "jwk.json"
+    keys: '{"32abb5cf-a1fb-4cdd-9af7-fe517a0bda47": "pkBJlIfLcEW0tvIutbZjsjwBYOZ2DkRw2Hiy5S+m+uI=", "f5a7e70c-fb73-42ab-b217-841ea4e5d5b1": "A5kZEy3jC4ChSTtbq92AsARDrqslb+J7WmWwkMevhds=", "12e87ac2-9ee3-4bab-85ca-758cbd998b26":"2lWwOTIvMxfwO1n9TwOvtuuOaTva95vmW8kyGYaoe6w="}'
+  meta-change:
+    email-max-try-count: 3
+    sms-max-try-count: 5
+    validity:
+      password-reset-code:
+        minutes: 60
+      email:
+        activation-code:
+          minutes: 10080
+        change-code:
+          minutes: 1440
+      sms:
+        activation-code:
+          minutes: 10
+          change-code:
+            minutes: 10
+  job:
+    email:
+      send:
+        max-try-count: 3
+    sms:
+      send:
+        max-try-count: 3
+  twilio:
+    ireland:
+      live:
+        sid: ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        auth-token: example-twilio-auth-token-ireland-live
+      test:
+        sid: ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        auth-token: example-twilio-auth-token-ireland-test
+    us:
+      live:
+        sid: ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        auth-token: example-twilio-auth-token-us-live
+      test:
+        sid: ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        auth-token: example-twilio-auth-token-us-test
+
+    messaging-service:
+      sid: MGxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+    verify-service:
+      sid: VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

@@ -6,6 +6,7 @@ import com.kurtuba.auth.error.exception.BusinessLogicException;
 import jakarta.mail.internet.MimeBodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
+import org.springframework.context.annotation.Profile;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
@@ -14,6 +15,7 @@ import java.util.Date;
 
 
 @Service
+@Profile("local")
 @Validated
 public class EmailServiceImpl implements EmailService {
 

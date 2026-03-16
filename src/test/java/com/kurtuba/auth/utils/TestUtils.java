@@ -4,7 +4,10 @@ import com.kurtuba.auth.data.dto.RegistrationDto;
 import com.kurtuba.auth.data.enums.AuthProviderType;
 import com.kurtuba.auth.data.enums.AuthoritiesType;
 import com.kurtuba.auth.data.enums.ContactType;
-import com.kurtuba.auth.data.model.*;
+import com.kurtuba.auth.data.model.LocalizationAvailableLocale;
+import com.kurtuba.auth.data.model.Role;
+import com.kurtuba.auth.data.model.UserRole;
+import com.kurtuba.auth.data.model.UserSetting;
 
 public class TestUtils {
 

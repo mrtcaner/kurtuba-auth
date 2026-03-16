@@ -11,7 +11,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Data
@@ -46,13 +46,13 @@ public class UserMetaChange {
 
     private boolean executed;
 
-    private LocalDateTime expirationDate;
+    private Instant expirationDate;
 
     private Integer tryCount;
 
     private Integer maxTryCount;
 
-    private LocalDateTime createdDate;
+    private Instant createdDate;
 
-    private LocalDateTime updatedDate;
+    private Instant updatedDate;
 }

@@ -1,8 +1,8 @@
 package com.kurtuba.auth.error.handlers;
 
 
-import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.data.dto.ResponseErrorDto;
+import com.kurtuba.auth.error.enums.ErrorEnum;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authorization.AuthorizationDeniedException;
@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 //default lowest precedence, so works if no specific handlers found
 @ControllerAdvice
@@ -26,7 +26,7 @@ public class BaseExceptionHandler {
                 .message(ErrorEnum.GENERIC_EXCEPTION.getMessage())
                 .error(ex.getMessage())
                 .detail(request.getDescription(false))
-                .timestamp(LocalDateTime.now())
+                .timestamp(Instant.now())
                 .build();
 
         //In case of RFC 9457 error responses such as 404, 405 etc
