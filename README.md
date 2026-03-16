@@ -24,6 +24,10 @@ This repository is relevant if you are looking for:
 - [Demo Defaults vs Production Requirements](docs/demo-vs-production.md)
 - [API Reference](docs/api.md)
 
+## License
+
+This repository is licensed under the Apache License 2.0. See [LICENSE](LICENSE).
+
 ## Key Technical Topics
 
 - JWT access tokens with JWKS publication
