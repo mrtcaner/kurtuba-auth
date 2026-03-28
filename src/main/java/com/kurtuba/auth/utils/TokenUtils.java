@@ -19,16 +19,17 @@ import org.jose4j.jwe.JsonWebEncryption;
 import org.jose4j.jwk.PublicJsonWebKey;
 import org.jose4j.keys.AesKey;
 import org.jose4j.lang.JoseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -36,9 +37,11 @@ import java.util.*;
 @Component
 public class TokenUtils {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(TokenUtils.class);
+
     @Value("${kurtuba.jwk.keys}")
     private String jwkKeys;
-    @Value("classpath:jwk.json")
+    @Value("${kurtuba.jwk.file:classpath:jwk.json}")
     Resource jwkFile;
     @Value("${auth.server.issuer-url}")
     private String authServerIssuerUrl;
@@ -201,7 +204,7 @@ public class TokenUtils {
 
             // Print user identifier
             String userId = payload.getSubject();
-            System.out.println("User ID: " + userId);
+            LOGGER.debug("Decoded Google ID token for subject {}", userId);
 
             // Get profile information from payload
             String email = payload.getEmail();
@@ -213,7 +216,7 @@ public class TokenUtils {
             newUser.setAuthProvider(AuthProviderType.GOOGLE);
 
         } else {
-            System.out.println("Invalid ID token.");
+            LOGGER.warn("Invalid Google ID token received");
         }
 
         return newUser;

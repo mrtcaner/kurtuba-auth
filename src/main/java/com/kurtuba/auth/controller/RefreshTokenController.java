@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Arrays;
 
 @RestController
-@RequestMapping("auth")
+@RequestMapping("/auth")
 public class RefreshTokenController {
 
     final UserTokenService userTokenService;

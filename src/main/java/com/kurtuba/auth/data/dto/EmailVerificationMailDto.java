@@ -21,4 +21,5 @@ public class EmailVerificationMailDto {
     String closing;
     String closingSubject;
     String getInTouch;
+    String supportEmail;
 }

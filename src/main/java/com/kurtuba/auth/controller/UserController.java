@@ -4,10 +4,12 @@ package com.kurtuba.auth.controller;
 import com.kurtuba.auth.data.dto.*;
 import com.kurtuba.auth.data.enums.AuthoritiesType;
 import com.kurtuba.auth.data.enums.JWTClaimType;
+import com.kurtuba.auth.data.enums.MessageJobStateType;
 import com.kurtuba.auth.data.model.User;
 import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.error.exception.BusinessLogicException;
 import com.kurtuba.auth.service.LogoutService;
+import com.kurtuba.auth.service.MessageJobService;
 import com.kurtuba.auth.service.UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -25,12 +27,13 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("user")
+@RequestMapping("/auth/user")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
     private final LogoutService logoutService;
+    private final MessageJobService messageJobService;
 
     /**
      * this method is for internal use only
@@ -308,9 +311,8 @@ public class UserController {
             modelAndView.addAllObjects(ResultPageDto.builder()
                                                     .success(true)
                                                     .title("Congratulations!")
-                                                    .message1(
-                                                            "You can now log in to your account with your email " +
-                                                            "address")
+                                                    .message1("You can now log in to your account with your email " +
+                                                              "address")
                                                     .build()
                                                     .toMap());
         } catch (BusinessLogicException ex) {
@@ -319,9 +321,8 @@ public class UserController {
                                                     .success(false)
                                                     .title("Verification Failed!")
                                                     .message1(ex.getMessage())
-                                                    .message2(
-                                                            "Try logging in to your account to request a new " +
-                                                            "verification link")
+                                                    .message2("Try logging in to your account to request a new " +
+                                                              "verification link")
                                                     .build()
                                                     .toMap());
         }
@@ -377,9 +378,19 @@ public class UserController {
     }
 
     @PutMapping("/lang")
-    public ResponseEntity<Void> updateLang(@Valid @RequestParam String langCode, Principal principal) {
+    public ResponseEntity<Void> updateLang(@NotBlank @RequestParam String langCode, Principal principal) {
         userService.updateUserLang(principal.getName(), langCode);
         return ResponseEntity.ok().build();
+
+    }
+
+
+    // Users can only see their own verification code status
+    @GetMapping("/verification/send-status")
+    public ResponseEntity<MessageJobStateType> getVerificationMessageStatus(@NotBlank @RequestParam String userMetaChangeId,
+                                                                            Principal principal) {
+        return ResponseEntity.ok(messageJobService.findByUserMetaChangeIdAndUserId(userMetaChangeId,
+                                                                                 principal.getName()));
 
     }
 

@@ -5,11 +5,14 @@ import io.github.bucket4j.Bandwidth;
 import java.time.Duration;
 
 public enum RateLimitPublicApi {
-    REGISTRATION("/registration/**", 30, Duration.ofMinutes(15)),
-    AUTH("/auth/**", 50, Duration.ofMinutes(10)),
-    PASSWORD_RESET("/user/password/reset/**", 5, Duration.ofHours(1)),
-    SMS("/sms/**", 5, Duration.ofMinutes(15)),
-    VERIFICATION("/user/email/verification/link/**", 15, Duration.ofMinutes(15));
+    REGISTRATION("/auth/registration/**", 30, Duration.ofMinutes(15)),
+    LOGIN("/auth/login", 50, Duration.ofMinutes(10)),
+    SERVICE_LOGIN("/auth/service/login", 50, Duration.ofMinutes(10)),
+    TOKEN_REFRESH("/auth/token", 50, Duration.ofMinutes(10)),
+    WEB_TOKEN_REFRESH("/auth/web/token", 50, Duration.ofMinutes(10)),
+    PASSWORD_RESET("/auth/user/password/reset/**", 5, Duration.ofHours(1)),
+    SMS("/auth/sms/**", 5, Duration.ofMinutes(15)),
+    VERIFICATION("/auth/user/email/verification/link/**", 15, Duration.ofMinutes(15));
 
     private final String pattern;
     private final int capacity;

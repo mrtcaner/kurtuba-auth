@@ -17,11 +17,17 @@ import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Array;
 import java.time.temporal.Temporal;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 @Aspect
 @Component
-@Profile("local")
+@Profile("test")
 public class LoggingAspect
 {
 	private static final Logger LOGGER = LoggerFactory.getLogger(LoggingAspect.class);

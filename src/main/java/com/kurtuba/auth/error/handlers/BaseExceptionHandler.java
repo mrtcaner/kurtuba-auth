@@ -1,8 +1,10 @@
 package com.kurtuba.auth.error.handlers;
 
 
-import com.kurtuba.auth.data.dto.ResponseErrorDto;
 import com.kurtuba.auth.error.enums.ErrorEnum;
+import com.kurtuba.auth.data.dto.ResponseErrorDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authorization.AuthorizationDeniedException;
@@ -17,9 +19,11 @@ import java.time.Instant;
 @ControllerAdvice
 public class BaseExceptionHandler {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(BaseExceptionHandler.class);
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> globalExceptionHandler(Exception ex, WebRequest request) {
-        ex.printStackTrace();
+        LOGGER.error("Unhandled exception for request {}", request.getDescription(false), ex);
         ResponseErrorDto errorDetails = ResponseErrorDto
                 .builder()
                 .code(ErrorEnum.GENERIC_EXCEPTION.getCode())

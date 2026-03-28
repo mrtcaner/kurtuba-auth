@@ -76,6 +76,20 @@ Development schema automation is useful for local runs but not for real environm
 Production expectation:
 - use managed migrations
 - avoid destructive schema recreation
+- prefer `ddl-auto=validate` when Flyway is enabled
+
+### PostgreSQL setup posture
+
+The repository now documents two PostgreSQL postures:
+
+- a simple developer path using one database account for both Flyway and the app
+- a more production-oriented path using the checked-in `init_db.sql` role split
+
+This distinction matters because teams often need a middle ground between “H2 demo” and “full production hardening.”
+
+Practical guidance:
+- use the shared-user approach for local integration and CI if you want simplicity
+- use the split-role approach when you want clearer privilege boundaries
 
 ### Localhost-based URLs
 
@@ -266,21 +280,6 @@ Production expectation:
 - confirm which implementation beans are active in production
 - ensure real providers are wired and tested
 
-### Partial or evolving provider flows
-
-Some external-provider logic may be present for selected providers while others are noted as future work or rely on simplified assumptions.
-
-Why this is acceptable during active development:
-- incremental rollout of provider support
-
-Why this matters in production:
-- externally visible capabilities may be interpreted as fully supported even when they are not
-- provider token validation quality varies by implementation
-
-Production expectation:
-- document exactly which providers and flows are production-ready
-- mark partial support clearly
-
 ## Capabilities Present But Operationally Dependent
 
 A number of capabilities exist in the codebase but depend on proper environment setup before they are truly usable.
@@ -297,6 +296,7 @@ These include:
 - localization-aware messaging
 - admin token operations
 - rate limiting
+- PostgreSQL-backed migration and persistence
 
 In documentation, these should never be described only as “supported.” They should be described as:
 
@@ -311,6 +311,7 @@ Production requires:
 - persistent relational database
 - controlled schema migrations
 - durable storage for users, clients, token state, and recovery metadata
+- a conscious choice between shared-user simplicity and split-role privilege separation
 
 ### Key management
 
@@ -388,6 +389,7 @@ Before calling a deployment production-ready, verify at least the following:
 - verify signing keys and JWKS behavior
 - confirm real provider-backed email/SMS implementations are active
 - validate activation, login, refresh, logout, and reset flows end-to-end
+- validate your PostgreSQL privilege model and migration strategy
 
 ## Recommended Documentation Language
 
@@ -408,6 +410,6 @@ This document should be read with:
 - `docs/capabilities.md`
 - `docs/auth-model.md`
 - `docs/configuration.md`
-- `docs/deployment.md`
+- `docs/postgresql.md`
 
 It is especially important as a companion to `docs/configuration.md`, because configuration lists alone do not clearly communicate operational risk.

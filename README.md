@@ -13,6 +13,7 @@ This repository is relevant if you are looking for:
 - cookie-based JWT handling for web clients
 - service-to-service token issuance
 - JWK-based signing key storage and rotation
+- a Spring Boot auth server that can run on H2 for demo use and PostgreSQL for real integration
 
 ## Documentation
 
@@ -21,6 +22,7 @@ This repository is relevant if you are looking for:
 - [Authentication Model](docs/auth-model.md)
 - [Key Management](docs/key-management.md)
 - [Configuration Reference](docs/configuration.md)
+- [PostgreSQL Setup](docs/postgresql.md)
 - [Demo Defaults vs Production Requirements](docs/demo-vs-production.md)
 - [API Reference](docs/api.md)
 
@@ -37,7 +39,10 @@ This repository is licensed under the Apache License 2.0. See [LICENSE](LICENSE)
 - Password reset by code or hosted link
 - Token blocking and revocation
 - RSA-oriented JWK/JWE signing-key packaging with rollover support
+- H2-based demo startup and PostgreSQL/Flyway deployment paths
 
 ## Notes
 
-The current repository contains documentation for both implemented capabilities and operational caveats. Some defaults are suitable for demo or local development only, especially around datasource choice, provider credentials, jobs, rate limiting, cookie security, and signing-key handling. Start with [Overview](docs/overview.md), then read [Demo Defaults vs Production Requirements](docs/demo-vs-production.md) and [Key Management](docs/key-management.md) before using the service in a real deployment.
+The current repository contains documentation for both implemented capabilities and operational caveats. Some defaults are suitable for demo or local development only, especially around datasource choice, provider credentials, jobs, rate limiting, cookie security, and signing-key handling.
+
+Start with [Overview](docs/overview.md), then read [Configuration Reference](docs/configuration.md), [PostgreSQL Setup](docs/postgresql.md), [Demo Defaults vs Production Requirements](docs/demo-vs-production.md), and [Key Management](docs/key-management.md) before using the service in a real deployment.

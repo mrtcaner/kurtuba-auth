@@ -3,6 +3,7 @@ package com.kurtuba.auth.controller;
 import com.kurtuba.auth.data.dto.*;
 import com.kurtuba.auth.data.enums.RegisteredClientType;
 import com.kurtuba.auth.data.model.RegisteredClient;
+import com.kurtuba.auth.data.model.User;
 import com.kurtuba.auth.data.model.UserMetaChange;
 import com.kurtuba.auth.data.repository.RegisteredClientRepository;
 import com.kurtuba.auth.error.enums.ErrorEnum;
@@ -27,7 +28,7 @@ import org.springframework.web.servlet.ModelAndView;
 import java.util.List;
 
 @RestController
-@RequestMapping("registration")
+@RequestMapping("/auth/registration")
 public class RegistrationController {
 
     final UserService userService;
@@ -63,16 +64,23 @@ public class RegistrationController {
                     schema = @Schema(implementation = TokensResponseDto.class))})
     @PostMapping("/other-provider")
     public ResponseEntity<TokensResponseDto> registerViaAnotherProvider(@Valid @RequestBody RegistrationOtherProviderDto newUser) {
-        RegistrationDto dto = registrationService.registerByAnotherProvider(newUser);
-        List<RegisteredClient> defaultClientList =
-                registeredClientRepository.findByClientType(RegisteredClientType.DEFAULT);
-        if(defaultClientList.isEmpty()){
-            throw new BusinessLogicException(ErrorEnum.AUTH_CLIENT_INVALID);
+        User user = registrationService.registerByAnotherProvider(newUser);
+        String registeredClientId;
+        String registeredClientSecret;
+        if(newUser.getRegisteredClientId() != null){
+            registeredClientId = newUser.getRegisteredClientId();
+            registeredClientSecret = newUser.getRegisteredClientSecret();
+        }else{
+            List<RegisteredClient> defaultClientList =
+                    registeredClientRepository.findByClientType(RegisteredClientType.DEFAULT);
+            if(defaultClientList.isEmpty()){
+                throw new BusinessLogicException(ErrorEnum.AUTH_CLIENT_INVALID);
+            }
+            registeredClientId = defaultClientList.getFirst().getClientId();
+            registeredClientSecret = defaultClientList.getFirst().getClientSecret();
         }
-        RegisteredClient defaultClient = defaultClientList.getFirst();
-        TokensResponseDto tokenResponseDto = loginService.authenticateAndGetTokens(dto.getEmail(), dto.getPassword(),
-                                                                                   defaultClient.getClientId(),
-                "");
+
+        TokensResponseDto tokenResponseDto = loginService.getTokensForUser(user, registeredClientId, registeredClientSecret);
         return ResponseEntity
                 .status(HttpStatusCode.valueOf(HttpStatus.CREATED_201))
                 .body(tokenResponseDto);

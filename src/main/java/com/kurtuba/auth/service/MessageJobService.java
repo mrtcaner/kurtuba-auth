@@ -12,6 +12,8 @@ import com.kurtuba.auth.error.exception.BusinessLogicException;
 import com.kurtuba.auth.utils.EmailUtils;
 import com.kurtuba.auth.utils.annotation.MobileNumber;
 import jakarta.validation.constraints.NotBlank;
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.NotImplementedException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,10 +27,17 @@ import java.util.List;
 
 @Service
 @Validated
+@RequiredArgsConstructor
 public class MessageJobService {
 
     @Value("${kurtuba.server.url}")
     private String kurtubaServerUrl;
+
+    @Value("${kurtuba.mail.from-address}")
+    private String fromAddress;
+
+    @Value("${kurtuba.mail.support-address}")
+    private String supportAddress;
 
     @Value("${kurtuba.job.email.send.max-try-count}")
     private String emailSendMaxTryCount;
@@ -36,17 +45,10 @@ public class MessageJobService {
     @Value("${kurtuba.job.sms.send.max-try-count}")
     private String smsSendMaxTryCount;
 
-    final
-    MessageJobRepository messageJobRepository;
+    private final MessageJobRepository messageJobRepository;
 
-    final
-    LocalizationMessageService localizationMessageService;
+    private final LocalizationMessageService localizationMessageService;
 
-    public MessageJobService(MessageJobRepository messageJobRepository,
-                             LocalizationMessageService localizationMessageService) {
-        this.messageJobRepository = messageJobRepository;
-        this.localizationMessageService = localizationMessageService;
-    }
 
     @Transactional
     public void saveMessageJob(MessageJob messageJob) {
@@ -92,6 +94,7 @@ public class MessageJobService {
                                                                                                  ".content.closing.subject").getMessage())
                 .getInTouch(localizationMessageService.findByLanguageCodeAndMessageKey(lang, "mail.account.activation" +
                                                                                              ".content.get-in-touch").getMessage())
+                .supportEmail(supportAddress)
                 .build();
         createAccountActivationMessageJob(recipient, lang, verificationMailDto, userMetaChangeId);
     }
@@ -114,32 +117,12 @@ public class MessageJobService {
                     .subject(localizationMessageService
                                      .findByLanguageCodeAndMessageKey(lang, "mail.account.activation.subject").getMessage())
                     .message(htmlFileContent)
-                    .sender("sender-test@example.com")
+                    .sender(fromAddress)
                     .userMetaChangeId(userMetaChangeId)
                     .build());
         } catch (Exception e) {
             throw new BusinessLogicException(ErrorEnum.MAIL_UNABLE_TO_SEND.getCode(), e.getMessage());
         }
-    }
-
-    @Transactional
-    public void sendVerificationCodeSMS(@NotBlank String mobileNumber, @NotBlank String code,
-                                        @NotBlank String languageCode, String userMetaChangeId) {
-        messageJobRepository.save(MessageJob.builder()
-                .createdDate(Instant.now())
-                .contactType(ContactType.MOBILE)
-                //.serviceProvider(MessageServiceProviderType.KURTUBA) // todo: let it throw exception until proper
-                // implementation of regular sms send
-                .maxTryCount(Integer.parseInt(smsSendMaxTryCount))
-                .sendAfterDate(Instant.now())
-                .state(MessageJobStateType.PENDING)
-                .tryCount(0)
-                .recipient(mobileNumber)
-                //user languageCode here and translate
-                .message("sms.account.activation.message" + code)
-                .sender("sms.account.activation.sender")
-                .userMetaChangeId(userMetaChangeId)
-                .build());
     }
 
     @Transactional
@@ -163,7 +146,7 @@ public class MessageJobService {
     public void sendAccountActivationLinkMail(String recipient, String verificationCode, String lang,
                                               String userMetaChangeId) {
 
-        String verificationLink = kurtubaServerUrl + "/registration/activation/link/" + verificationCode;
+        String verificationLink = kurtubaServerUrl + "/auth/registration/activation/link/" + verificationCode;
 
         EmailVerificationMailDto verificationMailDto = EmailVerificationMailDto.builder()
                 .title(localizationMessageService.findByLanguageCodeAndMessageKey(lang, "mail.account.activation.content" +
@@ -185,6 +168,7 @@ public class MessageJobService {
                                                                                                  ".content.closing.subject").getMessage())
                 .getInTouch(localizationMessageService.findByLanguageCodeAndMessageKey(lang, "mail.account.activation" +
                                                                                              ".content.get-in-touch").getMessage())
+                .supportEmail(supportAddress)
                 .build();
 
         createAccountActivationMessageJob(recipient, lang, verificationMailDto, userMetaChangeId);
@@ -210,6 +194,7 @@ public class MessageJobService {
                     .findByLanguageCodeAndMessageKey(lang, "mail.password.reset.content.closing.subject").getMessage());
             htmlFileContent = htmlFileContent.replace("${getInTouch}", localizationMessageService
                     .findByLanguageCodeAndMessageKey(lang, "mail.password.reset.content.get-in-touch").getMessage());
+            htmlFileContent = htmlFileContent.replace("${supportEmail}", supportAddress);
 
             messageJobRepository.save(MessageJob.builder()
                     .createdDate(Instant.now())
@@ -222,7 +207,7 @@ public class MessageJobService {
                     .recipient(recipient)
                     .subject(localizationMessageService.findByLanguageCodeAndMessageKey(lang, "mail.password.reset.subject").getMessage())
                     .message(htmlFileContent)
-                    .sender("sender-test@example.com")
+                    .sender(fromAddress)
                     .userMetaChangeId(userMetaChangeId)
                     .build());
         } catch (Exception e) {
@@ -234,7 +219,7 @@ public class MessageJobService {
     @Transactional
     public void sendPasswordResetLinkMail(String recipient, String resetCode, String lang, String userMetaChangeId) {
 
-        String resetLink = kurtubaServerUrl + "/user/password/reset/password-reset/" + resetCode;
+        String resetLink = kurtubaServerUrl + "/auth/user/password/reset/password-reset/" + resetCode;
         try {
             File htmlFile = ResourceUtils.getFile("classpath:templates/mailPasswordReset.html");
             String htmlFileContent = new String(Files.readAllBytes(htmlFile.toPath()));
@@ -251,6 +236,7 @@ public class MessageJobService {
                     .findByLanguageCodeAndMessageKey(lang, "mail.password.reset.content.closing.subject").getMessage());
             htmlFileContent = htmlFileContent.replace("${getInTouch}", localizationMessageService
                     .findByLanguageCodeAndMessageKey(lang, "mail.password.reset.content.get-in-touch").getMessage());
+            htmlFileContent = htmlFileContent.replace("${supportEmail}", supportAddress);
 
             messageJobRepository.save(MessageJob.builder()
                     .createdDate(Instant.now())
@@ -263,7 +249,7 @@ public class MessageJobService {
                     .recipient(recipient)
                     .subject(localizationMessageService.findByLanguageCodeAndMessageKey(lang, "mail.password.reset.subject").getMessage())
                     .message(htmlFileContent)
-                    .sender("sender-test@example.com")
+                    .sender(fromAddress)
                     .userMetaChangeId(userMetaChangeId)
                     .build());
         } catch (Exception e) {
@@ -294,6 +280,7 @@ public class MessageJobService {
                                                                                                  ".content.closing.subject").getMessage())
                 .getInTouch(localizationMessageService.findByLanguageCodeAndMessageKey(lang, "mail.email.verification" +
                                                                                              ".content.get-in-touch").getMessage())
+                .supportEmail(supportAddress)
                 .build();
 
         createEmailChangeMessageJob(recipient, lang, verificationMailDto, userMetaChangeId);
@@ -316,7 +303,7 @@ public class MessageJobService {
                     .subject(localizationMessageService.findByLanguageCodeAndMessageKey(lang, "mail.email.verification" +
                                                                                               ".subject").getMessage())
                     .message(htmlFileContent)
-                    .sender("sender-test@example.com")
+                    .sender(fromAddress)
                     .userMetaChangeId(userMetaChangeId)
                     .build());
         } catch (Exception e) {
@@ -328,7 +315,7 @@ public class MessageJobService {
     public void sendUserEmailChangeLinkMail(String recipient, String verificationCode, String lang,
                                             String userMetaChangeId) {
 
-        String verificationLink = kurtubaServerUrl + "/user/email/verification/link/" + verificationCode;
+        String verificationLink = kurtubaServerUrl + "/auth/user/email/verification/link/" + verificationCode;
 
         EmailVerificationMailDto verificationMailDto = EmailVerificationMailDto.builder()
                 .title(localizationMessageService.findByLanguageCodeAndMessageKey(lang, "mail.email.verification.content" +
@@ -350,6 +337,7 @@ public class MessageJobService {
                                                                                                  ".content.closing.subject").getMessage())
                 .getInTouch(localizationMessageService.findByLanguageCodeAndMessageKey(lang, "mail.email.verification" +
                                                                                              ".content.get-in-touch").getMessage())
+                .supportEmail(supportAddress)
                 .build();
 
         createEmailChangeMessageJob(recipient, lang, verificationMailDto, userMetaChangeId);
@@ -381,6 +369,7 @@ public class MessageJobService {
                     .findByLanguageCodeAndMessageKey(lang, "mail.account.modification.content.closing.subject").getMessage());
             htmlFileContent = htmlFileContent.replace("${getInTouch}", localizationMessageService
                     .findByLanguageCodeAndMessageKey(lang, "mail.account.modification.content.get-in-touch").getMessage());
+            htmlFileContent = htmlFileContent.replace("${supportEmail}", supportAddress);
             htmlFileContent = htmlFileContent.replaceAll("metaName", metaName);
 
             messageJobRepository.save(MessageJob.builder()
@@ -395,7 +384,7 @@ public class MessageJobService {
                     .subject(localizationMessageService.findByLanguageCodeAndMessageKey(lang, "mail.account.modification" +
                                                                                               ".subject").getMessage())
                     .message(htmlFileContent)
-                    .sender("sender-test@example.com")
+                    .sender(fromAddress)
                     .userMetaChangeId(userMetaChangeId)
                     .build());
         } catch (Exception e) {
@@ -407,7 +396,13 @@ public class MessageJobService {
     public void sendUserMetaChangeNotificationSMS(String recipient, MetaOperationType metaOperationType, String lang,
                                                   String userMetaChangeId) {
         // todo implement send sms
-        throw new UnsupportedOperationException("Feature incomplete. Contact assistance.");
+        throw new NotImplementedException("Feature incomplete. Contact assistance.");
     }
 
+    public MessageJobStateType findByUserMetaChangeIdAndUserId(String userMetaChangeId, String userId) {
+        MessageJob job =
+                messageJobRepository.findByUserMetaChangeIdAndUserId(userMetaChangeId, userId)
+                                    .orElseThrow(() -> new BusinessLogicException(ErrorEnum.RESOURCE_NOT_FOUND));
+        return job.getState();
+    }
 }

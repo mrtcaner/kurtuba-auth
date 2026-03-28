@@ -15,7 +15,7 @@ public class JwksController {
         this.jwkSet = jwkSet;
     }
 
-    @GetMapping("/oauth2/jwks")
+    @GetMapping("/auth/oauth2/jwks")
     public Map<String, Object> getPublicKeys(){
         return this.jwkSet.toJSONObject(true);
     }

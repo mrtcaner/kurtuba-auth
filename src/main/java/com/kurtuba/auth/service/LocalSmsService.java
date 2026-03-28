@@ -1,6 +1,8 @@
 package com.kurtuba.auth.service;
 
 import com.twilio.rest.verify.v2.service.Verification;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 
@@ -8,27 +10,29 @@ import org.springframework.stereotype.Service;
 @Profile("local")
 public class LocalSmsService implements ISMSService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(LocalSmsService.class);
+
     @Override
     public Object sendSMS(String recipientNumber, String sender, String messageContent) {
-        System.out.println("LocalSmsService.sendSMS -> to=" + recipientNumber + ", sender=" + sender);
+        LOGGER.info("Local SMS stub -> to={}, sender={}", recipientNumber, sender);
         return null;
     }
 
     @Override
     public Verification sendVerificationSMS(String recipient) {
-        System.out.println("LocalSmsService.sendVerificationSMS -> to=" + recipient);
+        LOGGER.info("Local verification SMS stub -> to={}", recipient);
         return null;
     }
 
     @Override
     public Boolean checkVerification(String userMobile, String code) {
-        System.out.println("LocalSmsService.checkVerification -> mobile=" + userMobile + ", code=" + code);
+        LOGGER.info("Local verification check stub -> mobile={}", userMobile);
         return true;
     }
 
     @Override
     public Object deleteVerification(String sid) {
-        System.out.println("LocalSmsService.deleteVerification -> sid=" + sid);
+        LOGGER.info("Local verification delete stub -> sid={}", sid);
         return null;
     }
 }

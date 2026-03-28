@@ -17,6 +17,7 @@ It is relevant to readers searching for terms such as:
 - cookie-based JWT authentication
 - user registration and account activation service
 - password reset and token revocation service
+- Spring Boot PostgreSQL auth server with Flyway
 
 ## Who It Serves
 
@@ -134,6 +135,8 @@ People evaluating the repository should expect to find code and documentation re
 - service-to-service auth
 - cookie auth
 - role and scope based access control
+- PostgreSQL migration
+- Flyway
 
 ## Architecture in Brief
 
@@ -162,7 +165,7 @@ This makes the repository useful not only as an app-specific auth service, but a
 
 ## Signing Keys at a Glance
 
-JWT signing is backed by JWK key material loaded at startup. Public verification keys are exposed through `/oauth2/jwks`, while private signing keys are stored indirectly: the repository contains encrypted JWK payloads in `jwk.json`, and the decryption secrets are supplied separately through `kurtuba.jwk.keys`.
+JWT signing is backed by JWK key material loaded at startup. Public verification keys are exposed through `/auth/oauth2/jwks`, while private signing keys are stored indirectly: the repository contains encrypted JWK payloads in `jwk.json`, and the decryption secrets are supplied separately through `kurtuba.jwk.keys`.
 
 The current codebase is prepared to verify tokens signed with either `RS256` or `ES256`, but the bundled helper used for generating encrypted signing material currently defaults to RSA key generation. In practice, the current repository layout is therefore oriented around RSA signing with JWKS publication and staged key rollover.
 
@@ -178,6 +181,20 @@ Important properties of the model include:
 - Token refresh validates both token state and registered client identity
 - Tokens can be blocked in persistent storage
 - User login behavior includes failed-attempt counting, captcha signaling, and account lockout logic
+
+## Database Modes
+
+The repository intentionally supports two different relational-database postures.
+
+### Demo posture
+
+The checked-in default configuration uses H2 and disables Flyway so the service can be evaluated quickly with minimal setup.
+
+### Integration and deployment posture
+
+The service can also run against PostgreSQL with Flyway enabled. This path has now been validated in the public repository against a real PostgreSQL instance using a throwaway database, the checked-in migration, and Hibernate schema validation.
+
+For PostgreSQL setup guidance, see `docs/postgresql.md`.
 
 ## Environment Model
 
@@ -209,6 +226,7 @@ Production documentation should explicitly identify:
 - secure cookie and transport settings
 - real mail/SMS provider setup
 - key management and signing-key rotation expectations
+- real relational-database setup and migration ownership expectations
 - any flows that are present but still rely on placeholder assumptions or partial implementations
 
 ## Recommended Reading
@@ -218,6 +236,6 @@ This overview should be read together with the following documents:
 - `docs/capabilities.md` for a feature-by-feature breakdown
 - `docs/auth-model.md` for token, client, and security behavior
 - `docs/key-management.md` for signing algorithms, JWK storage, generation, and rotation
-- `docs/configuration.md` for all configuration keys and production expectations
-- `docs/demo-vs-production.md` for safe deployment guidance
-- `docs/api.md` for endpoint-level behavior
+- `docs/configuration.md` for property reference and runtime expectations
+- `docs/postgresql.md` for H2-to-PostgreSQL progression and role-split database setup
+- `docs/demo-vs-production.md` for deployment caveats and hardening notes

@@ -4,6 +4,8 @@ import com.kurtuba.auth.data.dto.*;
 import com.kurtuba.auth.data.enums.AuthProviderType;
 import com.kurtuba.auth.data.enums.ContactType;
 import com.kurtuba.auth.data.enums.MetaOperationType;
+import com.kurtuba.auth.data.enums.RegisteredClientType;
+import com.kurtuba.auth.data.model.RegisteredClient;
 import com.kurtuba.auth.data.model.User;
 import com.kurtuba.auth.data.model.UserFcmToken;
 import com.kurtuba.auth.data.model.UserMetaChange;
@@ -18,6 +20,8 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -26,12 +30,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 
-import java.time.Duration;
+import java.time.*;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+
 
 import static com.kurtuba.auth.utils.Utils.generateVerificationCode;
 
@@ -39,6 +42,8 @@ import static com.kurtuba.auth.utils.Utils.generateVerificationCode;
 @Validated
 @RequiredArgsConstructor
 public class UserService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserService.class);
 
     private final UserRepository userRepository;
     private final UserTokenService userTokenService;
@@ -153,8 +158,7 @@ public class UserService {
             newUser.setActivated(true);
 
             userRepository.save(newUser);
-
-            System.out.println("Created new user: " + username);
+            LOGGER.info("Created new OAuth user for username {}", username);
         }
 
     }
@@ -280,14 +284,23 @@ public class UserService {
 
     }
 
-    /**
-     * If clientId is provided, tokens will be returned
-     *
-     * @param passwordResetByCodeDto
-     */
+
     @Transactional
     public TokensResponseDto resetPasswordByCode(@Valid PasswordResetByCodeDto passwordResetByCodeDto) {
-
+        String registeredClientId;
+        String registeredClientSecret;
+        if(passwordResetByCodeDto.getClientId() != null){
+            registeredClientId = passwordResetByCodeDto.getClientId();
+            registeredClientSecret = passwordResetByCodeDto.getClientSecret();
+        }else{
+            List<RegisteredClient> defaultClientList =
+                    registeredClientRepository.findByClientType(RegisteredClientType.DEFAULT);
+            if(defaultClientList.isEmpty()){
+                throw new BusinessLogicException(ErrorEnum.AUTH_CLIENT_INVALID);
+            }
+            registeredClientId = defaultClientList.getFirst().getClientId();
+            registeredClientSecret = defaultClientList.getFirst().getClientSecret();
+        }
         UserMetaChange userMetaChange = userMetaChangeService
                 .findActiveMetaChangeOperationForUser(userRepository
                         .getUserByEmailOrMobile(passwordResetByCodeDto.getEmailMobile()).orElseThrow(() ->
@@ -301,7 +314,7 @@ public class UserService {
         User user = userRepository.getUserById(userMetaChange.getUserId()).orElseThrow(() ->
                 new BusinessLogicException(ErrorEnum.USER_DOESNT_EXIST));
 
-        return userTokenService.validateRegisteredClientAndGetTokens(user, passwordResetByCodeDto.getClientId(), passwordResetByCodeDto.getClientSecret());
+        return userTokenService.validateRegisteredClientAndGetTokens(user, registeredClientId, registeredClientSecret);
 
     }
 
@@ -381,8 +394,8 @@ public class UserService {
         userFcmTokenRepository.save(fcmEntry);
         } catch (PessimisticLockingFailureException e) {
             // Log it—this means the "Take Turns" queue was too long
-            System.out.println("Lock timeout for installationId: {}. Skipping this update as another is likely in " +
-                               "progress." + firebaseInstallationId);
+            LOGGER.warn("Lock timeout for installationId {}. Skipping update because another update is in progress.",
+                    firebaseInstallationId);
         }
     }
 

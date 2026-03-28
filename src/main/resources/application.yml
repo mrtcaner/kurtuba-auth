@@ -7,19 +7,21 @@ server:
 
 auth:
   server:
-    issuer-url: http://localhost:8080
+    issuer-url: ${AUTH_SERVER_ISSUER_URL:http://localhost:8080}
 
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:testdb}
+    driver-class-name: ${SPRING_DATASOURCE_DRIVER_CLASS_NAME:org.h2.Driver}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
 
   jpa:
     show-sql: false
+    open-in-view: false
     properties:
       hibernate:
+        default_batch_fetch_size: 100
         format_sql: true
     hibernate:
       ddl-auto: create-drop
@@ -37,30 +39,28 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${auth.server.issuer-url}/oauth2/jwks
+          jwk-set-uri: ${SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI:${auth.server.issuer-url}/auth/oauth2/jwks}
       client:
         registration:
           google:
-            clientId: example-google-client-id.apps.googleusercontent.com
-            clientSecret: example-google-client-secret
-            redirect-uri: http://localhost:8080/login/oauth2/code/google
+            clientId: ${GOOGLE_CLIENT_ID:example-google-client-id.apps.googleusercontent.com}
+            clientSecret: ${GOOGLE_CLIENT_SECRET:example-google-client-secret}
+            redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/login/oauth2/code/google}
             scope:
               - email
               - profile
   mail:
-    host: localhost
-    port: 1025
-    username: example-mail-user
-    password: example-mail-password
-    protocol: smtp
+    host: ${SPRING_MAIL_HOST:localhost}
+    port: ${SPRING_MAIL_PORT:1025}
+    username: ${SPRING_MAIL_USERNAME:example-mail-user}
+    password: ${SPRING_MAIL_PASSWORD:example-mail-password}
+    protocol: ${SPRING_MAIL_PROTOCOL:smtp}
 
 logging:
   level:
     root: info
 
 management:
-  security:
-    enabled: false
   health:
     mail:
       enabled: false
@@ -69,7 +69,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health, info, env
+        include: health, info
 
 kurtuba:
   jobs:
@@ -77,16 +77,19 @@ kurtuba:
   rate-limit:
     enabled: false
   server:
-    url: http://localhost:8080
+    url: ${KURTUBA_SERVER_URL:http://localhost:8080}
+  mail:
+    from-address: ${KURTUBA_MAIL_FROM_ADDRESS:no-reply@example.test}
+    support-address: ${KURTUBA_MAIL_SUPPORT_ADDRESS:support@example.test}
   jwk:
-    file: "jwk.json"
-    keys: '{"32abb5cf-a1fb-4cdd-9af7-fe517a0bda47": "pkBJlIfLcEW0tvIutbZjsjwBYOZ2DkRw2Hiy5S+m+uI=", "f5a7e70c-fb73-42ab-b217-841ea4e5d5b1": "A5kZEy3jC4ChSTtbq92AsARDrqslb+J7WmWwkMevhds=", "12e87ac2-9ee3-4bab-85ca-758cbd998b26":"2lWwOTIvMxfwO1n9TwOvtuuOaTva95vmW8kyGYaoe6w="}'
+    file: ${KURTUBA_JWK_FILE:classpath:jwk.json}
+    keys: ${KURTUBA_JWK_KEYS:{"replace-with-your-jwk-entry-id":"replace-with-your-base64-secret"}}
   meta-change:
     email-max-try-count: 3
     sms-max-try-count: 5
     validity:
       password-reset-code:
-        minutes: 60
+        minutes: 30
       email:
         activation-code:
           minutes: 10080
@@ -95,8 +98,8 @@ kurtuba:
       sms:
         activation-code:
           minutes: 10
-          change-code:
-            minutes: 10
+        change-code:
+          minutes: 10
   job:
     email:
       send:
@@ -104,23 +107,19 @@ kurtuba:
     sms:
       send:
         max-try-count: 3
+  auth-provider:
+    google:
+      client-id: ${KURTUBA_GOOGLE_CLIENT_ID:}
+      client-secret: ${KURTUBA_GOOGLE_CLIENT_SECRET:}
+    facebook:
+      client-id: ${KURTUBA_FACEBOOK_CLIENT_ID:}
+      client-secret: ${KURTUBA_FACEBOOK_CLIENT_SECRET:}
   twilio:
-    ireland:
-      live:
-        sid: ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-        auth-token: example-twilio-auth-token-ireland-live
-      test:
-        sid: ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-        auth-token: example-twilio-auth-token-ireland-test
     us:
       live:
-        sid: ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-        auth-token: example-twilio-auth-token-us-live
-      test:
-        sid: ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-        auth-token: example-twilio-auth-token-us-test
-
+        sid: ${KURTUBA_TWILIO_US_LIVE_SID:ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
+        auth-token: ${KURTUBA_TWILIO_US_LIVE_AUTH_TOKEN:example-twilio-auth-token-us-live}
     messaging-service:
-      sid: MGxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      sid: ${KURTUBA_TWILIO_MESSAGING_SERVICE_SID:MGxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}
     verify-service:
-      sid: VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+      sid: ${KURTUBA_TWILIO_VERIFY_SERVICE_SID:VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx}

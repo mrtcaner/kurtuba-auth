@@ -1,6 +1,7 @@
 package com.kurtuba.auth.service;
 
 import com.kurtuba.auth.data.dto.RegistrationDto;
+import com.kurtuba.auth.data.dto.RegistrationOtherProviderDto;
 import com.kurtuba.auth.data.enums.AuthProviderType;
 import com.kurtuba.auth.data.enums.ContactType;
 import com.kurtuba.auth.data.enums.MetaOperationType;
@@ -22,11 +23,20 @@ import org.springframework.util.StringUtils;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -236,6 +246,182 @@ public class RegistrationServiceTest {
                     () -> registrationService.register(registrationDto));
             assertEquals(exception.getErrorCode(), (int) ErrorEnum.USER_CONTACT_REQUIRED.getCode());
 
+        }
+    }
+
+    @Nested
+    class RegisterByAnotherProviderTests {
+
+        RegistrationOtherProviderDto providerDto;
+        RegistrationDto decodedRegistration;
+        User existingUser;
+        RegistrationService spyRegistrationService;
+
+        @BeforeEach
+        void setup() {
+            providerDto = RegistrationOtherProviderDto.builder()
+                    .provider(AuthProviderType.GOOGLE)
+                    .providerClientId("google-client")
+                    .token("token")
+                    .redirectUri("https://kurtuba.app/redirect")
+                    .languageCode("en")
+                    .countryCode("tr")
+                    .build();
+
+            decodedRegistration = RegistrationDto.builder()
+                    .name("Google")
+                    .surname("User")
+                    .email("user@user.com")
+                    .password("a.123456")
+                    .authProvider(AuthProviderType.GOOGLE)
+                    .languageCode("en")
+                    .countryCode("tr")
+                    .preferredVerificationContact(ContactType.EMAIL)
+                    .verificationByCode(true)
+                    .build();
+
+            UserSetting userSetting = TestUtils.defaultUserSettingBuilder();
+            UserRole userRole = TestUtils.defaultUserRoleBuilder();
+
+            existingUser = User.builder()
+                    .id("existing-user")
+                    .name("Manual")
+                    .surname("User")
+                    .email(decodedRegistration.getEmail())
+                    .password(new BCryptPasswordEncoder().encode("manual-pass"))
+                    .authProvider(AuthProviderType.KURTUBA)
+                    .activated(true)
+                    .locked(false)
+                    .failedLoginCount(0)
+                    .showCaptcha(false)
+                    .emailVerified(true)
+                    .mobileVerified(false)
+                    .userSetting(userSetting)
+                    .userRoles(List.of(userRole))
+                    .createdDate(Instant.now())
+                    .build();
+            userSetting.setUser(existingUser);
+            userRole.setUser(existingUser);
+
+            spyRegistrationService = spy(registrationService);
+            lenient().doReturn(decodedRegistration).when(spyRegistrationService)
+                    .decodeGoogleRegistrationFromIdToken(providerDto.getToken(), providerDto.getProviderClientId());
+        }
+
+        @Test
+        void registerByAnotherProvider_whenExistingManualUser_thenReturnSameUserWithoutResettingPassword() {
+            when(userService.getUserByEmail(decodedRegistration.getEmail())).thenReturn(Optional.of(existingUser));
+            User returnedUser = spyRegistrationService.registerByAnotherProvider(providerDto);
+
+            assertSame(existingUser, returnedUser);
+            verify(userService, never()).saveUser(any(User.class));
+        }
+
+        @Test
+        void registerByAnotherProvider_whenExistingSocialUserWithAnotherProvider_thenReturnSameUserWithoutChangingProvider() {
+            existingUser.setAuthProvider(AuthProviderType.FACEBOOK);
+            when(userService.getUserByEmail(decodedRegistration.getEmail())).thenReturn(Optional.of(existingUser));
+            User returnedUser = spyRegistrationService.registerByAnotherProvider(providerDto);
+
+            assertSame(existingUser, returnedUser);
+            assertEquals(AuthProviderType.FACEBOOK, existingUser.getAuthProvider());
+            verify(userService, never()).saveUser(any(User.class));
+        }
+
+        @Test
+        void registerByAnotherProvider_whenExistingUserHasInvalidState_thenThrowException() {
+            existingUser.setActivated(false);
+            when(userService.getUserByEmail(decodedRegistration.getEmail())).thenReturn(Optional.of(existingUser));
+            BusinessLogicException exception = assertThrows(BusinessLogicException.class,
+                    () -> spyRegistrationService.registerByAnotherProvider(providerDto));
+
+            assertEquals((int) ErrorEnum.USER_INVALID_STATE.getCode(), exception.getErrorCode());
+        }
+
+        @Test
+        void registerByAnotherProvider_whenNewUser_thenCreateUserWithoutExposingStoredPassword() {
+            when(userService.getUserByEmail(decodedRegistration.getEmail())).thenReturn(Optional.empty());
+            when(localizationAvailableLocaleRepository.findByLanguageCodeAndCountryCode(anyString(), anyString()))
+                    .thenReturn(Optional.of(LocalizationAvailableLocale.builder()
+                            .languageCode("en")
+                            .countryCode("tr")
+                            .build()));
+            doAnswer(invocation -> invocation.getArgument(0)).when(userService).saveUser(any(User.class));
+            doAnswer(invocation -> invocation.getArgument(0)).when(userRoleService).create(any(UserRole.class));
+            User returnedUser = spyRegistrationService.registerByAnotherProvider(providerDto);
+
+            assertEquals(decodedRegistration.getEmail(), returnedUser.getEmail());
+            assertTrue(returnedUser.isEmailVerified());
+            assertFalse(new BCryptPasswordEncoder().matches(decodedRegistration.getPassword(), returnedUser.getPassword()));
+        }
+
+        @Test
+        void registerByAnotherProvider_whenFacebookAccessToken_thenFetchUserDataInsteadOfDecodingTokenPayload() {
+            providerDto.setProvider(AuthProviderType.FACEBOOK);
+            decodedRegistration.setAuthProvider(AuthProviderType.FACEBOOK);
+            when(userService.getUserByEmail(decodedRegistration.getEmail())).thenReturn(Optional.of(existingUser));
+            doReturn(decodedRegistration).when(spyRegistrationService).decodeFacebookRegistration(providerDto);
+
+            User returnedUser = spyRegistrationService.registerByAnotherProvider(providerDto);
+
+            assertSame(existingUser, returnedUser);
+            verify(spyRegistrationService).decodeFacebookRegistration(providerDto);
+            verify(spyRegistrationService, never())
+                    .decodeGoogleRegistration(providerDto);
+        }
+
+        @Test
+        void decodeFacebookRegistration_whenAccessTokenProvided_thenMapFetchedFacebookUser() {
+            providerDto.setProvider(AuthProviderType.FACEBOOK);
+            spyRegistrationService = spy(registrationService);
+            doReturn(Map.of(
+                    "email", "facebook.user@example.com",
+                    "first_name", "Facebook",
+                    "last_name", "User"
+            )).when(spyRegistrationService).fetchFacebookUserData(providerDto.getToken());
+
+            RegistrationDto returnedRegistration = spyRegistrationService.decodeFacebookRegistration(providerDto);
+
+            assertEquals("facebook.user@example.com", returnedRegistration.getEmail());
+            assertEquals("Facebook", returnedRegistration.getName());
+            assertEquals("User", returnedRegistration.getSurname());
+            assertEquals(AuthProviderType.FACEBOOK, returnedRegistration.getAuthProvider());
+        }
+
+        @Test
+        void registerByAnotherProvider_whenGoogleAuthorizationCode_thenExchangeCodeOnBackend() {
+            providerDto.setToken(null);
+            providerDto.setAuthorizationCode("auth-code");
+            when(userService.getUserByEmail(decodedRegistration.getEmail())).thenReturn(Optional.of(existingUser));
+            doReturn("google-id-token").when(spyRegistrationService).exchangeGoogleAuthorizationCodeForIdToken(providerDto);
+            doReturn(decodedRegistration).when(spyRegistrationService)
+                    .decodeGoogleRegistrationFromIdToken("google-id-token", providerDto.getProviderClientId());
+
+            User returnedUser = spyRegistrationService.registerByAnotherProvider(providerDto);
+
+            assertSame(existingUser, returnedUser);
+            verify(spyRegistrationService).decodeGoogleRegistration(providerDto);
+            verify(spyRegistrationService).exchangeGoogleAuthorizationCodeForIdToken(providerDto);
+        }
+
+        @Test
+        void decodeFacebookRegistration_whenAuthorizationCodeProvided_thenExchangeCodeBeforeFetchingUser() {
+            providerDto.setProvider(AuthProviderType.FACEBOOK);
+            providerDto.setToken(null);
+            providerDto.setAuthorizationCode("facebook-code");
+            spyRegistrationService = spy(registrationService);
+            doReturn("facebook-access-token").when(spyRegistrationService).exchangeFacebookAuthorizationCodeForAccessToken(providerDto);
+            doReturn(Map.of(
+                    "email", "facebook.user@example.com",
+                    "first_name", "Facebook",
+                    "last_name", "User"
+            )).when(spyRegistrationService).fetchFacebookUserData("facebook-access-token");
+
+            RegistrationDto returnedRegistration = spyRegistrationService.decodeFacebookRegistration(providerDto);
+
+            assertEquals("facebook.user@example.com", returnedRegistration.getEmail());
+            verify(spyRegistrationService).exchangeFacebookAuthorizationCodeForAccessToken(providerDto);
+            verify(spyRegistrationService).fetchFacebookUserData("facebook-access-token");
         }
     }
 

@@ -7,6 +7,8 @@ import com.kurtuba.auth.data.dto.SMSVerificationRequestDto;
 import com.kurtuba.auth.service.ISMSService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,10 +16,16 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Arrays;
 
 
+/**
+ * Convenience controller for testing purposes
+ * works only in the dev profile
+ */
 @RestController
-@RequestMapping("sms")
+@RequestMapping("/auth/sms")
 @Profile("dev")
 public class SmsController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(SmsController.class);
 
     final
     ISMSService smsService;
@@ -52,12 +60,9 @@ public class SmsController {
     @PostMapping("/message-status")
     @ResponseBody
     public void handleOutgoingSMSStatusChange(HttpServletRequest request) {
-        request.getParameterMap().keySet().forEach(key -> System.out.println(key + ": " +
-                                                                             Arrays.stream(request.getParameterMap().get(key)).reduce((s, s2) -> s += s2).orElse("")));
-        System.out.println("*** -------------------------------------message-status WEBHOOK" +
-                           "---------------------------------------- ***");
+        request.getParameterMap().forEach((key, values) ->
+                LOGGER.info("Twilio message-status webhook param {}={}", key, Arrays.stream(values).reduce("", String::concat)));
+        LOGGER.info("Completed handling Twilio message-status webhook");
     }
 
 }
-
-

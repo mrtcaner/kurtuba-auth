@@ -19,7 +19,7 @@ import java.util.List;
 
 
 @RestController
-@RequestMapping("adm")
+@RequestMapping("/auth/adm")
 public class LocalizationController {
 
     final

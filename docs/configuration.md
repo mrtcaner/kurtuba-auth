@@ -21,6 +21,8 @@ In practice, configuration should be documented in two layers:
 - what each property does
 - whether the current default is safe for real deployment
 
+The checked-in `application.yml` is intentionally demo-friendly. For PostgreSQL-backed runs, use a separate profile or external config file instead of changing the default demo file.
+
 ## `server.*`
 
 ### `server.port`
@@ -66,7 +68,7 @@ Demo/local default:
 
 Defines the JDBC connection string.
 
-Current demo usage may point to an in-memory H2 database. That is useful for local runs and tests, but production should use a persistent relational database.
+Current demo usage points to an in-memory H2 database. That is useful for local runs and tests, but production and serious integration work should use PostgreSQL or another persistent relational database supported by the application.
 
 ### `spring.datasource.driver-class-name`
 
@@ -85,6 +87,16 @@ Production requirements:
 - avoid embedding secrets directly in committed config
 - inject through environment variables or secret management
 
+### PostgreSQL note
+
+The public repo has been validated against a real PostgreSQL instance using:
+
+- a separate throwaway database
+- Flyway enabled
+- Hibernate `ddl-auto=validate`
+
+That confirms the checked-in baseline migration is usable in a PostgreSQL-backed startup path when the database is prepared correctly.
+
 ## `spring.jpa.*`
 
 ### `spring.jpa.show-sql`
@@ -99,6 +111,18 @@ Controls SQL formatting.
 
 Mostly a developer convenience option.
 
+### `spring.jpa.properties.hibernate.default_batch_fetch_size`
+
+Controls Hibernate batch-fetch behavior.
+
+This is a performance-oriented setting that is usually fine to keep across environments unless profiling shows otherwise.
+
+### `spring.jpa.open-in-view`
+
+Controls Open Session in View behavior.
+
+The current configuration disables it, which is usually the better default for API-oriented services.
+
 ### `spring.jpa.hibernate.ddl-auto`
 
 Controls schema generation behavior.
@@ -107,6 +131,7 @@ Values such as `create-drop` are useful for tests and demo runs but are not safe
 
 Production expectation:
 - use controlled schema migration rather than destructive automatic schema generation
+- when Flyway is enabled, prefer `validate`
 
 ## `spring.flyway.*`
 
@@ -114,11 +139,22 @@ Production expectation:
 
 Controls whether Flyway migrations are applied at startup.
 
-If disabled during demo runs, schema evolution may be handled by JPA auto-DDL instead. In production, this should generally be enabled and paired with managed migrations.
+If disabled during demo runs, schema evolution may be handled by JPA auto-DDL instead. In production and PostgreSQL integration runs, this should generally be enabled and paired with managed migrations.
 
 Production recommendation:
 - enable Flyway
 - rely on migration scripts instead of `ddl-auto=create-drop`
+
+### Migration ownership note
+
+`src/main/resources/db/migration/V1__baseline.sql` follows a more production-oriented PostgreSQL model and includes explicit ownership and grant assumptions.
+
+That means:
+- it works best when your database roles are prepared intentionally
+- a simple developer setup can still use one shared database user for both Flyway and the app
+- a stricter production setup can separate migrator and runtime roles
+
+See `docs/postgresql.md` for both modes.
 
 ## `spring.h2.*`
 
@@ -147,7 +183,7 @@ These are development-only concerns in most real deployments.
 
 Defines the JWKS URI used for JWT verification.
 
-This is a critical setting because it drives how resource-server JWT validation works. In this service, it is tied to the auth server issuer/JWKS publishing setup.
+In this service, the public JWKS endpoint is exposed at `/auth/oauth2/jwks`, so the default value should align with the auth server issuer plus that path.
 
 Production requirements:
 - must resolve correctly from the runtime environment
@@ -164,7 +200,7 @@ Typical properties include:
 - `redirect-uri`
 - `scope`
 
-Current defaults may be examples or placeholders.
+Current defaults are examples/placeholders.
 
 Production requirements:
 - use real provider-issued credentials
@@ -218,12 +254,6 @@ Recommended production review:
 
 ## `management.*`
 
-### `management.security.enabled`
-
-Legacy-style toggle controlling access behavior around management endpoints.
-
-This should be reviewed in the context of current Spring Boot behavior and deployment topology.
-
 ### `management.health.mail.enabled`
 
 Controls whether mail health checks are enabled.
@@ -239,9 +269,7 @@ Defines which actuator endpoints are exposed over HTTP.
 Production requirements:
 - expose only the minimum needed set
 - protect sensitive actuator endpoints
-- review if `env` exposure is appropriate
-
-Exposing `env` publicly is generally risky unless access is tightly controlled.
+- avoid exposing `env` publicly
 
 ## `kurtuba.jobs.*`
 
@@ -282,6 +310,18 @@ Production requirements:
 - must match the frontend/backend route expectations
 - must not be left as `localhost`
 
+## `kurtuba.mail.*`
+
+### `kurtuba.mail.from-address`
+
+Logical sender address used in outbound mail.
+
+### `kurtuba.mail.support-address`
+
+Support/contact address referenced in templates and account messages.
+
+These are separate from SMTP credentials and should also be set appropriately for real deployments.
+
 ## `kurtuba.jwk.*`
 
 ### `kurtuba.jwk.file`
@@ -290,7 +330,7 @@ Defines the JWK file location used by the service.
 
 ### `kurtuba.jwk.keys`
 
-Defines configured signing-key material or related key mappings.
+Defines configured signing-key decryption material or related key mappings.
 
 This configuration is one of the most security-sensitive areas of the application.
 
@@ -301,65 +341,7 @@ Production requirements:
 - avoid committing production key material in source control
 - ensure JWKS output matches the active signing keys
 
-If key material is embedded directly in config for demo convenience, that must be replaced before deployment.
-
-### How JWK storage works in this repository
-
-The current repository uses a split key-storage model:
-
-- `jwk.json` contains encrypted JWK entries
-- `kurtuba.jwk.keys` contains a JSON map of entry id to base64-encoded decryption secret
-
-Each entry in `jwk.json` is expected to contain metadata such as:
-
-- `id`
-- `order`
-- `encryptedKey`
-
-At startup, the application decrypts every stored entry, reconstructs the full JWKs, sorts them by `order`, and uses the highest-ordered key as the active signing key.
-
-### Storage guidance
-
-For production, the minimum acceptable approach is:
-
-- keep encrypted JWK payloads and decryption secrets separate
-- do not commit real production secrets into source control
-- inject `kurtuba.jwk.keys` from environment-managed secrets
-- restrict access to both the encrypted JWK file and the runtime secret source
-
-Preferred production approaches are stronger:
-
-- store decryption secrets in a secret manager
-- keep encrypted JWK artifacts out of the main application image when possible
-- use external key custody or KMS/HSM-backed signing if your risk model requires it
-
-### Rotation guidance
-
-The current config and code support key rollover by keeping multiple keys loaded simultaneously.
-
-To rotate safely:
-
-- add a new encrypted key entry with a higher `order`
-- add its matching secret under the same entry id in `kurtuba.jwk.keys`
-- deploy with both old and new keys present
-- wait for old signed tokens to expire
-- only then remove the old key and old secret
-
-This works because the service:
-
-- signs with the highest-ordered key
-- verifies with any loaded matching key
-- publishes all loaded public keys through JWKS
-
-### Algorithm guidance
-
-The codebase accepts `RS256` and `ES256` in the JWT decoder configuration, but the helper path currently used for generating encrypted signing keys creates RSA JWKs by default.
-
-That means:
-
-- current generated signing material is expected to produce RSA-signed tokens
-- EC signing is possible only if operators deliberately generate and deploy EC JWKs
-- production docs and operational runbooks should reflect the actual deployed key type rather than assuming all supported algorithms are actively used
+The checked-in config intentionally uses placeholders here so the public repo remains safe to share.
 
 ## `kurtuba.meta-change.*`
 
@@ -403,7 +385,7 @@ Operational impact:
 
 ## `kurtuba.job.*`
 
-These properties appear to define message-delivery retry and scheduling behavior.
+These properties define message-delivery retry and scheduling behavior.
 
 ### `kurtuba.job.email.send.max-try-count`
 
@@ -415,13 +397,22 @@ Maximum number of retries for SMS sending.
 
 These settings are operationally important for reliable delivery and should align with queueing, retry, and monitoring strategy.
 
+## `kurtuba.auth-provider.*`
+
+These properties configure provider-specific validation details used during registration or login through other identity providers.
+
+Examples include:
+- Google client id and secret
+- Facebook client id and secret
+
+These should be treated as environment-specific integration values, not demo defaults for real deployments.
+
 ## `kurtuba.twilio.*`
 
 These properties configure Twilio integration for SMS/verification features.
 
 Examples include:
-- Ireland live/test account credentials
-- US live/test account credentials
+- live account credentials
 - messaging service SID
 - verify service SID
 
@@ -479,19 +470,7 @@ Before deploying this service, review at least the following areas:
 - rate limiting
 - job enablement
 - secret injection strategy
-
-## Recommended Documentation Table Format
-
-For the final version of this document, each property group should ideally be rendered in a table with columns such as:
-
-- Property
-- Purpose
-- Example/demo default
-- Required in production
-- Security impact
-- Notes
-
-That format will make the configuration reference much easier to scan than prose alone.
+- PostgreSQL role and ownership model if not using the simple shared-user setup
 
 ## Relationship to Other Documents
 
@@ -500,8 +479,6 @@ This document should be read together with:
 - `docs/overview.md`
 - `docs/capabilities.md`
 - `docs/auth-model.md`
-- `docs/key-management.md`
+- `docs/postgresql.md`
 - `docs/demo-vs-production.md`
-- `docs/deployment.md`
-
-The next natural document is `docs/demo-vs-production.md`, where the current safe-for-demo defaults are contrasted directly with what must change before real deployment.
+- `docs/key-management.md`

@@ -17,7 +17,18 @@ public class RegistrationOtherProviderDto {
     @NotNull
     AuthProviderType provider;
     @NotBlank
-    String clientId;
-    @NotBlank
+    String providerClientId;
     String token;
+    String authorizationCode;
+    String redirectUri;
+
+    String registeredClientId;
+
+    String registeredClientSecret;
+
+    @NotBlank
+    private String languageCode;
+
+    @NotBlank
+    private String countryCode;
 }

@@ -1,11 +1,13 @@
 package com.kurtuba.auth.error.handlers;
 
-import com.kurtuba.auth.data.dto.ResponseErrorDto;
 import com.kurtuba.auth.error.enums.ErrorEnum;
 import com.kurtuba.auth.error.exception.BusinessLogicError;
 import com.kurtuba.auth.error.exception.BusinessLogicException;
 import com.kurtuba.auth.error.exception.ResourceNotFoundException;
+import com.kurtuba.auth.data.dto.ResponseErrorDto;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
@@ -22,9 +24,11 @@ import java.time.Instant;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class GlobalExceptionHandler {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(BusinessLogicException.class)
     public ResponseEntity<?> businessLogicException(BusinessLogicException ex, WebRequest request) {
-        ex.printStackTrace();
+        LOGGER.warn("Business logic exception for request {} with code {}", request.getDescription(false), ex.getErrorCode(), ex);
         ResponseErrorDto errorDetails = ResponseErrorDto
                 .builder()
                 .code(ex.getErrorCode())
@@ -39,7 +43,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<?> resourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
-        ex.printStackTrace();
+        LOGGER.warn("Resource not found for request {}", request.getDescription(false), ex);
         ResponseErrorDto errorDetails = ResponseErrorDto
                 .builder()
                 .code(ErrorEnum.RESOURCE_NOT_FOUND.getCode())
@@ -53,7 +57,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({ConstraintViolationException.class})
     public ResponseEntity<?> constraintViolationException(ConstraintViolationException ex, WebRequest request) {
-        ex.printStackTrace();
+        LOGGER.warn("Constraint violation for request {}", request.getDescription(false), ex);
         ResponseErrorDto errorDetails = ResponseErrorDto
                 .builder()
                 .code(ErrorEnum.INVALID_PARAMETER.getCode())
@@ -68,7 +72,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({HandlerMethodValidationException.class})
     public ResponseEntity<?> handlerMethodValidationException(HandlerMethodValidationException ex, WebRequest request) {
-        ex.printStackTrace();
+        LOGGER.warn("Handler method validation failed for request {}", request.getDescription(false), ex);
         ResponseErrorDto errorDetails = ResponseErrorDto
                 .builder()
                 .code(ErrorEnum.INVALID_PARAMETER.getCode())
@@ -83,7 +87,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({MethodArgumentNotValidException.class})
     public ResponseEntity<?> methodArgumentNotValidException(MethodArgumentNotValidException ex, WebRequest request) {
-        ex.printStackTrace();
+        LOGGER.warn("Method argument validation failed for request {}", request.getDescription(false), ex);
         ResponseErrorDto errorDetails = ResponseErrorDto
                 .builder()
                 .code(ErrorEnum.INVALID_PARAMETER.getCode())
@@ -98,7 +102,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessLogicError.class)
     public ResponseEntity<?> businessLogicError(BusinessLogicError ex, WebRequest request) {
-        ex.printStackTrace();
+        LOGGER.error("Business logic error for request {} with code {}", request.getDescription(false), ex.getErrorCode(), ex);
         ResponseErrorDto errorDetails = ResponseErrorDto
                 .builder()
                 .code(ex.getErrorCode())

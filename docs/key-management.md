@@ -2,7 +2,7 @@
 
 ## Overview
 
-`kurtuba-auth` signs JWT access tokens with private keys loaded from JWK material at startup and publishes the corresponding public keys through `/oauth2/jwks`.
+`kurtuba-auth` signs JWT access tokens with private keys loaded from JWK material at startup and publishes the corresponding public keys through `/auth/oauth2/jwks`.
 
 This document explains:
 
@@ -133,7 +133,7 @@ Use this rotation sequence:
 3. Set the new key’s `order` higher than the current active key.
 4. Deploy the service.
 5. Confirm new tokens are issued with the new `kid`.
-6. Confirm `/oauth2/jwks` exposes both old and new public keys.
+6. Confirm `/auth/oauth2/jwks` exposes both old and new public keys.
 7. Wait until all tokens signed by the old key are expired.
 8. Remove the old encrypted key entry and its matching secret in a later deployment.
 
@@ -156,7 +156,7 @@ After deployment, check the following:
 
 1. Issue a fresh token and inspect its JWT header.
 2. Confirm the `kid` matches the new active key.
-3. Call `/oauth2/jwks`.
+3. Call `/auth/oauth2/jwks`.
 4. Confirm both old and new public keys are present during the overlap window.
 5. Verify an old token still validates.
 6. Verify a newly issued token validates.

@@ -2,9 +2,9 @@
 
 ## Overview
 
-`kurtuba-auth` exposes endpoints for user registration, activation, authentication, token refresh, account recovery, user account operations, public key discovery, SMS-related flows, and administrative operations.
+`kurtuba-auth` exposes endpoints under `/auth` for registration, activation, authentication, token refresh, account recovery, user account operations, SMS testing hooks, public key discovery, and administrative operations.
 
-This document is organized by endpoint group rather than by controller class so it is easier for API consumers to follow.
+This document is organized by endpoint group so API consumers can understand the public surface and the most important behavioral details.
 
 ## Conventions
 
@@ -15,141 +15,117 @@ Unless otherwise noted:
 - validation and business-rule failures are typically returned as `400 Bad Request`
 - protected endpoints require a valid access token
 - some responses differ depending on registered-client behavior
-
-Error responses are generally returned in a structured error DTO.
+- hosted browser flows return HTML rather than JSON
 
 ## Authentication Requirements
 
 The API surface falls into three categories:
 
-- public endpoints, such as registration, login, activation, reset initiation, and JWKS
+- public endpoints, such as registration, activation, login, password-reset initiation, and JWKS
 - authenticated user endpoints, which require a valid user token
 - privileged/admin/service endpoints, which require appropriate scopes or authorities
 
 ## 1. Registration Endpoints
 
-Base path: `/registration`
+Base path: `/auth/registration`
 
-### `POST /registration`
+### `POST /auth/registration`
 
-Creates a new user and starts the activation process.
-
-Purpose:
-- register a Kurtuba-native user account
-- assign default user role
-- create an activation operation
-- trigger activation through the preferred contact method
+Creates a new Kurtuba-native user account and starts the activation flow.
 
 Typical request fields:
-- name
-- surname
-- username
-- email
-- mobile
-- password
-- auth provider
-- preferred verification contact
-- verification-by-code flag
-- language code
-- country code
+- `name`
+- `surname`
+- `username`
+- `email`
+- `mobile`
+- `password`
+- `preferredVerificationContact`
+- `verificationByCode`
+- `languageCode`
+- `countryCode`
 
 Success response:
 - `201 Created`
-- returns activation-operation identifier and user payload
+- returns activation metadata and the created user payload
 
 Important behavior:
 - at least one contact method must exist
 - preferred verification contact must be consistent with provided contact data
-- locale must be supported
 - duplicate email/mobile/username is rejected
+- locale must already exist in supported locales
+- the default `USER` role is assigned
 
-### `POST /registration/other-provider`
+### `POST /auth/registration/other-provider`
 
-Registers or logs in a user through an external identity provider path.
+Registers or logs in a user through an external identity provider path, then issues local application tokens.
 
-Purpose:
-- decode upstream provider identity
-- create or update local user state
-- issue local application tokens
+Supported providers in current code:
+- `GOOGLE`
+- `FACEBOOK`
+
+Request fields:
+- `provider`
+- `providerClientId`
+- either `token` or `authorizationCode`
+- `redirectUri` when using `authorizationCode`
+- optional `registeredClientId`
+- optional `registeredClientSecret`
+- `languageCode`
+- `countryCode`
+
+Current provider behavior:
+- Google accepts either a direct ID token or an authorization code that the server exchanges for an ID token
+- Facebook accepts either an access token or an authorization code that the server exchanges for an access token, then uses `/me` to fetch user data
+- if `registeredClientId` is omitted, the endpoint falls back to a `DEFAULT` registered client
+- if an account already exists with the same email, that account is reused
+- the endpoint returns local auth tokens, not just provider user data
 
 Success response:
 - `201 Created`
-- returns token response
+- returns local `TokensResponseDto`
 
-Important behavior:
-- depends on supported provider logic
-- depends on existence of a valid default registered client
-- may create a new local user or update an existing one
-
-### `GET /registration/username/available/{username}`
+### `GET /auth/registration/username/available/{username}`
 
 Checks whether a username is available.
 
-Success response:
-- `200 OK`
-- boolean result
-
-### `GET /registration/email/available/{email}`
+### `GET /auth/registration/email/available/{email}`
 
 Checks whether an email is available.
 
-Success response:
-- `200 OK`
-- boolean result
-
-### `GET /registration/mobile/available/{mobile}`
+### `GET /auth/registration/mobile/available/{mobile}`
 
 Checks whether a mobile number is available.
 
-Success response:
-- `200 OK`
-- boolean result
+### `POST /auth/registration/activation`
 
-### `POST /registration/activation`
-
-Resends an activation message.
-
-Purpose:
-- generate and send a fresh activation message for an unactivated account
+Resends an activation message for an unactivated account.
 
 Request:
-- email or mobile
-- whether activation should be by code
+- `emailMobile`
+- `byCode`
 
 Success response:
 - `201 Created`
-- returns new activation-operation identifier
+- returns the new activation-operation identifier
 
-### `PUT /registration/activation`
+### `PUT /auth/registration/activation`
 
 Activates an account by verification code.
 
-Purpose:
-- verify activation code
-- activate the account
-- optionally issue tokens if client info is provided
-
 Request:
-- email/mobile
-- code
-- optional client id
-- optional client secret
+- `emailMobile`
+- `code`
+- optional `clientId`
+- optional `clientSecret`
 
 Success responses:
-- `200 OK` if activation succeeds without token issuance
-- `201 Created` if activation succeeds and tokens are issued
+- `200 OK` when activation succeeds without token issuance
+- `201 Created` when activation succeeds and returns tokens
 
-### `GET /registration/activation/link/{linkParam}`
+### `GET /auth/registration/activation/link/{linkParam}`
 
-Activates an account by verification link.
-
-Purpose:
-- validate activation link token
-- activate the account
-- return a rendered success/failure page
-
-Success response:
-- HTML page rather than JSON
+Activates an account by verification link and returns a rendered success/failure page.
 
 ## 2. Authentication Endpoints
 
@@ -159,45 +135,37 @@ Base path: `/auth`
 
 Authenticates an end user and returns tokens.
 
-Purpose:
-- authenticate by email/mobile plus password
-- resolve registered client
-- issue client-aware tokens
-
 Request:
-- email/mobile
-- password
-- optional client id
-- optional client secret
+- `emailMobile`
+- `password`
+- optional `clientId`
+- optional `clientSecret`
 
 Success responses:
-- `200 OK` with token JSON for JSON-return clients
-- `204 No Content` with `Set-Cookie` header for cookie-return clients
+- `200 OK` with token JSON for standard clients
+- `204 No Content` with `Set-Cookie: jwt=...` for clients configured with `sendTokenInCookie=true`
 
 Important behavior:
-- if no client id is supplied, the service may use the configured default client
+- if no client id is supplied, the service may use the configured `DEFAULT` client
 - user must be activated
 - lockout and failed-login rules apply
-- cookie behavior depends on registered-client configuration
+- cookie responses currently use an HTTP-only `jwt` cookie
 
 ### `POST /auth/service/login`
 
-Authenticates a service client.
-
-Purpose:
-- issue a short-lived access token for machine-to-machine use
+Authenticates a `SERVICE` registered client and returns a short-lived access token.
 
 Request:
-- client id
-- client secret
+- `clientId`
+- `clientSecret`
 
 Success response:
 - `200 OK`
-- returns token JSON
+- returns `TokensResponseDto` with an access token only
 
 Important behavior:
-- only valid for `SERVICE` clients
-- client secret must match stored client credentials
+- only `SERVICE` clients are accepted
+- client secret must match the stored registered-client secret
 
 ## 3. Token Refresh Endpoints
 
@@ -207,295 +175,179 @@ Base path: `/auth`
 
 Refreshes tokens for non-web clients.
 
-Purpose:
-- validate token state and refresh-token state
-- consume the refresh token
-- issue a new token pair
-
 Request:
-- access token
-- refresh token
-- client id
-- optional client secret
+- `accessToken`
+- `refreshToken`
+- `clientId`
+- optional `clientSecret`
 
 Success response:
 - `201 Created`
-- returns new token pair
+- returns a new token pair
 
 Important behavior:
-- refresh token is one-time use
+- refresh is tied to the original access token and persisted token record
+- the refresh token is base64-decoded and checked against the stored BCrypt hash
+- refresh tokens are one-time use
 - blocked, expired, reused, or mismatched token state is rejected
 - client identity must match the original token context
 
 ### `POST /auth/web/token`
 
-Refreshes tokens for web clients using a JWT cookie.
-
-Purpose:
-- read access token from `jwt` cookie
-- validate client and token state
-- issue a replacement access token in a cookie
+Refreshes tokens for `WEB` clients that keep the access token in the `jwt` cookie.
 
 Request body:
-- client id
-- optional client secret
+- `clientId`
+- optional `clientSecret`
 
 Request requirements:
 - `jwt` cookie must be present
 
 Success response:
 - `200 OK`
-- rewrites `jwt` cookie
+- rewrites the `jwt` cookie
 
 Important behavior:
-- only valid for appropriate web-client configurations
+- only valid for `WEB` clients
+- the registered client must also support refresh tokens
 - missing cookie is rejected
-- token-state validation still applies
 
 ## 4. JWKS Endpoint
 
-### `GET /oauth2/jwks`
+### `GET /auth/oauth2/jwks`
 
-Returns public signing keys.
-
-Purpose:
-- allow token consumers to verify JWT signatures
+Returns the public signing keys used to verify JWT signatures.
 
 Success response:
 - `200 OK`
-- JWKS document
-
-Consumers:
-- downstream services
-- resource servers
-- any verifier that trusts this auth service as issuer
+- JWKS document containing the public portion of all loaded signing keys
 
 ## 5. User Endpoints
 
-Base path: `/user`
+Base path: `/auth/user`
 
-These endpoints generally require an authenticated user unless otherwise noted.
+### `GET /auth/user/{id}`
 
-### `GET /user/info`
+Service-only endpoint to fetch user data by id.
+
+Authorization:
+- requires `SCOPE_SERVICE`
+
+### `GET /auth/user/info`
 
 Returns information about the authenticated user.
 
-Success response:
-- `200 OK`
-- user DTO
+Important behavior:
+- service principals are rejected here
+
+### `GET /auth/user/locale`
+
+Returns the locale of the authenticated user.
 
 Important behavior:
-- unauthenticated requests are rejected
-- service principals are not treated as normal users here
+- service principals are rejected here
 
-### `GET /user/locale`
-
-Returns the locale settings of the authenticated user.
-
-Success response:
-- `200 OK`
-- locale DTO
-
-### `PUT /user/password`
+### `PUT /auth/user/password`
 
 Changes the password of the authenticated user.
 
-Request:
-- old password
-- new password
-- repeat/confirmation fields if required by DTO rules
+### `POST /auth/user/password/reset`
 
-Success response:
-- `204 No Content`
+Creates a password-reset request by code or link.
 
-### `POST /user/password/reset`
-
-Creates a password-reset request.
-
-Purpose:
-- generate a reset code or reset link
-- trigger outbound reset communication
-
-Request:
-- email/mobile
-- by-code flag
-
-Success response:
-- `201 Created`
-- returns reset-operation identifier
-
-### `PUT /user/password/reset/code`
+### `PUT /auth/user/password/reset/code`
 
 Completes password reset using a code.
 
-Purpose:
-- validate reset operation
-- set new password
-- optionally issue tokens
-
 Success responses:
-- `204 No Content` when password reset completes without token issuance
-- `201 Created` when password reset completes and tokens are issued
+- `204 No Content` when password reset succeeds without token issuance
+- `201 Created` when password reset also returns tokens
 
-### `GET /user/password/reset/password-reset/{linkParam}`
+### `GET /auth/user/password/reset/password-reset/{linkParam}`
 
-Renders the hosted password-reset page for a valid reset link.
+Returns the hosted password-reset page for a valid reset link.
 
-Success response:
-- HTML page
+### `POST /auth/user/password/reset/password-reset`
 
-### `POST /user/password/reset/password-reset`
+Handles the hosted password-reset form submission.
 
-Submits the hosted password-reset form.
-
-Success response:
-- rendered success/failure page
-
-### `GET /user/password/reset/forgot-password`
+### `GET /auth/user/password/reset/forgot-password`
 
 Returns the forgot-password page.
 
-Success response:
-- HTML page
+### `POST /auth/user/password/reset/forgot-password`
 
-### `POST /user/password/reset/forgot-password`
+Handles forgot-password form submission and sends a reset link.
 
-Submits forgot-password form input and initiates reset-link delivery.
+### `PUT /auth/user/email`
 
-Success response:
-- rendered success/failure page
+Initiates an email-change flow.
 
-### `PUT /user/email`
+### `PUT /auth/user/email/verify`
 
-Initiates user email update flow.
+Verifies email by code.
 
-Purpose:
-- request an email change through user-meta-change mechanics
+### `GET /auth/user/email/verify/{linkParam}`
 
-### `PUT /user/email/verify`
+Verifies email by link when that flow is used.
 
-Verifies email change or email verification using a code.
+### `PUT /auth/user/mobile`
 
-### `PUT /user/mobile`
+Initiates a mobile-change flow.
 
-Initiates user mobile update flow.
+### `PUT /auth/user/mobile/verify`
 
-### `PUT /user/mobile/verify`
+Verifies mobile by code.
 
-Verifies mobile change or mobile verification using a code.
+### `PUT /auth/user/personal-info`
 
-### `PUT /user/personal-info`
+Updates user personal/profile fields.
 
-Updates user profile/personal fields.
-
-Success response:
-- `200 OK`
-
-### `PUT /user/lang`
+### `PUT /auth/user/lang`
 
 Updates user language preference.
 
-Success response:
-- `200 OK`
-
-### `POST /user/fcm-token`
+### `POST /auth/user/fcm-token`
 
 Registers or updates a user FCM token.
 
-Success response:
-- `200 OK`
+### `GET /auth/user/fcm-token`
 
-### `GET /user/fcm-token`
+Returns the user’s stored FCM tokens.
 
-Returns the user’s FCM tokens.
+### `POST /auth/user/logout`
 
-Success responses:
-- `200 OK` when tokens exist
-- `404 Not Found` when none exist
+Logs out the current user by blocking the current token server-side.
 
-### `POST /user/logout`
-
-Logs out the current user.
-
-Purpose:
-- block the current token server-side
-
-Success response:
-- `200 OK`
-
-### `POST /user/logout/firebase`
+### `POST /auth/user/logout/firebase`
 
 Logs out an FCM installation association.
 
-Purpose:
-- delete FCM token registration linked to a user/install context
-
-Success response:
-- `200 OK`
-
 ## 6. SMS Endpoints
 
-Base path: `/sms`
+Base path: `/auth/sms`
 
-This controller should be documented separately based on the exact supported SMS verification flows.
+Current behavior:
+- this controller is only active in the `dev` profile
+- it is intended as a convenience/testing surface, not a stable production API
 
-Likely capabilities include:
-- starting SMS verification
-- checking SMS verification
-- deleting/canceling verification state
-
-For final documentation, each SMS endpoint should describe:
-- whether it uses local SMS logic or Twilio-backed verification
-- whether it is public or authenticated
-- how it interacts with activation or verification state
+Endpoints:
+- `POST /auth/sms`
+- `POST /auth/sms/verification`
+- `PUT /auth/sms/verification`
+- `DELETE /auth/sms/verification`
+- `POST /auth/sms/message-status`
 
 ## 7. Admin Endpoints
 
-Administrative endpoints are grouped under `/adm`.
+Administrative endpoints are grouped under `/auth/adm` and should be treated as security-sensitive.
 
-These are security-sensitive and should be documented with required authorities.
+Current groups include:
+- `/auth/adm/localization`
+- `/auth/adm/user`
+- `/auth/adm/token-management`
 
-## 7.1 Localization Admin
-
-Base path: `/adm/localization`
-
-Purpose:
-- manage localization messages and supported locales
-
-Typical admin capabilities:
-- create localization entries
-- update localization entries
-- fetch localization resources
-
-Documentation requirements:
-- required authority
-- input validation rules
-- conflict behavior for existing localization keys
-
-## 7.2 Admin User Operations
-
-Base path: `/adm/user`
-
-Purpose:
-- perform privileged user-management operations
-
-Typical capabilities should be documented from the controller implementation, such as:
-- querying users
-- reviewing state
-- administrative updates
-
-## 7.3 Token Management
-
-Base path: `/adm/token-management`
-
-Purpose:
-- block or unblock tokens
-- query token block state
-- perform admin token control operations
-
-Important behavior:
-- these endpoints directly affect access control
-- they should be treated as privileged security operations
+These endpoints require appropriate authorities/scopes and are intended for privileged operational use.
 
 ## 8. Error Model
 
@@ -511,53 +363,14 @@ Common error categories include:
 - invalid user state
 - unsupported locale or invalid operation state
 
-Typical fields include:
-- numeric error code
-- message
-- detail
-- timestamp
-
 ## 9. Status Code Patterns
 
 Common status patterns include:
 
-- `200 OK`
-  successful reads or successful non-creation operations
-
-- `201 Created`
-  successful resource creation or token creation in flows that issue new auth artifacts
-
-- `204 No Content`
-  successful operations with no response body, especially cookie-return login flows or password changes
-
-- `400 Bad Request`
-  validation failures, business-rule failures, token/state mismatches
-
-- `401 Unauthorized`
-  missing or invalid authentication for protected endpoints
-
-- `403 Forbidden`
-  authenticated principal lacks required authority
-
-- `404 Not Found`
-  resource not found in selected endpoints
-
-## 10. Final API Documentation Recommendation
-
-For the final version of this document, each endpoint should eventually be expanded into a consistent format:
-
-- Method and path
-- Purpose
-- Authentication required
-- Request body / path params / query params
-- Success response
-- Error cases
-- Side effects
-- Notes on demo vs production behavior
-
-This API document should be read together with:
-
-- `docs/capabilities.md`
-- `docs/auth-model.md`
-- `docs/configuration.md`
-- `docs/demo-vs-production.md`
+- `200 OK` for successful reads and standard successful operations
+- `201 Created` for registration, activation-with-token, refresh, and similar creation/token-issuance flows
+- `204 No Content` for successful cookie-return login flows and some mutation endpoints without response bodies
+- `400 Bad Request` for validation failures and business-rule failures
+- `401 Unauthorized` for missing or invalid authentication
+- `403 Forbidden` for principals lacking required authority
+- `404 Not Found` in selected lookup flows

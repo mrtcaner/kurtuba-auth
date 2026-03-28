@@ -51,7 +51,6 @@ public class RegistrationControllerIT {
 
 
     @BeforeEach
-    @Transactional
     public void setup() {
 
         mapper = new ObjectMapper();
@@ -59,21 +58,14 @@ public class RegistrationControllerIT {
 
         registrationDto = TestUtils.defaultRegistrationDtoBuilder();
         registrationDto.setPreferredVerificationContact(ContactType.MOBILE);
-
-        if (localizationAvailableLocaleRepository.findByLanguageCodeAndCountryCode(
-                registrationDto.getLanguageCode(), registrationDto.getCountryCode()).isEmpty()) {
-            localizationAvailableLocaleRepository.save(LocalizationAvailableLocale.builder()
-                    .languageCode(registrationDto.getLanguageCode())
-                    .countryCode(registrationDto.getCountryCode())
-                    .createdDate(Instant.now())
-                    .build());
-        }
-
-        if (roleRepository.findByName(AuthoritiesType.USER.name()).isEmpty()) {
-            roleRepository.save(Role.builder()
-                    .name(AuthoritiesType.USER.name())
-                    .build());
-        }
+        localizationAvailableLocaleRepository.save(LocalizationAvailableLocale.builder()
+                .languageCode(registrationDto.getLanguageCode())
+                .countryCode(registrationDto.getCountryCode())
+                .createdDate(Instant.now())
+                .build());
+        roleRepository.save(Role.builder()
+                .name(AuthoritiesType.USER.name())
+                .build());
     }
 
     @Test
@@ -81,7 +73,7 @@ public class RegistrationControllerIT {
 
         String jsonVal = mapper.writeValueAsString(registrationDto);
 
-        MvcResult result = mockMvc.perform(post("/registration")
+        MvcResult result = mockMvc.perform(post("/auth/registration")
                 .contentType(APPLICATION_JSON)
                 .content(jsonVal)
                 .accept(APPLICATION_JSON)).andReturn();

@@ -1,4 +1,4 @@
-FROM --platform=linux/arm64 ubuntu/jre:21-24.04_stable
+FROM --platform=linux/arm64 eclipse-temurin:21-jre-jammy
 EXPOSE 8080
-COPY target/${project.name}-${project.version}.jar /usr/local/app.jar
-CMD java -jar -Dspring.profiles.active=dev /usr/local/app.jar
+COPY target/*.jar /usr/local/app.jar
+CMD java -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-prod} -jar /usr/local/app.jar

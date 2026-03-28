@@ -2,14 +2,14 @@
 
 ## Overview
 
-`kurtuba-auth` uses a client-aware authentication model built around JWT access tokens, persisted token records, refresh-token rotation, and server-side token blocking.
+`kurtuba-auth` uses a client-aware authentication model built around signed JWT access tokens, persisted user-token state, refresh-token rotation, and server-side token blocking.
 
-The service does not treat authentication as a single generic login operation. Instead, authentication behavior depends on both:
+Authentication behavior depends on both:
 
 - the authenticated principal
 - the registered client through which authentication is performed
 
-This means token format, refresh behavior, cookie behavior, scopes, and TTL values are controlled by client configuration rather than by a single global policy.
+That means token shape, refresh support, cookie behavior, scopes, and TTL values are controlled by client configuration rather than by one global auth policy.
 
 ## Principal Types
 
@@ -18,139 +18,169 @@ The service works with two main principal categories:
 - end users
 - service clients
 
-These two categories are authenticated differently and receive tokens for different purposes.
-
 ### End users
 
-End users authenticate with credentials such as email or mobile plus password. Their tokens represent a user identity and may include user-role-derived scopes depending on client configuration.
+End users authenticate with `emailMobile` plus password, or arrive through the external-provider registration/login path.
 
 ### Service clients
 
-Service clients authenticate with client credentials. Their tokens represent the client itself rather than a human user. These tokens are intended for machine-to-machine communication and are issued through a separate service login path.
+Service clients authenticate with client credentials and receive short-lived access tokens intended for machine-to-machine communication.
 
 ## Registered Clients
 
-A registered client defines how tokens should be issued and handled for a consuming application or system.
+A registered client defines how tokens are issued and handled.
 
 Client definitions influence:
 
 - whether refresh tokens are enabled
-- access token TTL
-- refresh token TTL
+- access-token TTL
+- refresh-token TTL
 - whether scopes are included
-- whether tokens are returned in cookies
+- whether access tokens are returned in cookies
 - cookie max age
 - intended audiences
 - client type
 
-In practice, the registered client is a central part of the authentication model. The same user may receive different token behavior depending on the client used during login.
+If a user authenticates through different registered clients, the resulting token behavior can differ.
 
 ## Client Types
 
-The service recognizes multiple client types through `RegisteredClientType`.
+The service recognizes these `RegisteredClientType` values:
+
+- `DEFAULT`
+- `WEB`
+- `MOBILE`
+- `SERVICE`
+- `GENERIC`
 
 ### `DEFAULT`
 
-A fallback client used when login requests do not specify a client explicitly.
-
-This is useful for local development and simplified integrations, but in production it should be documented carefully because it creates implicit behavior.
+Used as a fallback when some flows omit the client explicitly. This happens in normal login and in the external-provider flow if `registeredClientId` is not supplied.
 
 ### `WEB`
 
-A web-oriented client type. These clients may use cookie-based access-token handling and a dedicated web refresh flow.
+Web-oriented client type. These clients may use cookie-based access-token transport and the dedicated web refresh flow.
 
 ### `MOBILE`
 
-A client type intended for mobile applications, typically using JSON token responses and refresh-token-based session continuation.
+Mobile-oriented client type. These clients typically use JSON token responses and refresh-token-based continuation.
 
 ### `SERVICE`
 
-A machine-to-machine client type. These clients authenticate with client credentials and receive short-lived access tokens without going through normal user login.
+Machine-to-machine client type. These clients authenticate with client credentials and receive short-lived access tokens only.
 
 ### `GENERIC`
 
-A general-purpose client type for integrations that do not fit one of the more specific categories.
+General-purpose client type for integrations that do not fit the other categories.
 
 ## User Authentication Flow
 
-For end users, authentication starts with credential validation.
+For normal credential login, authentication includes:
 
-The authentication process includes:
+- looking up the user by email or mobile
+- checking lock-window state
+- validating the BCrypt password hash
+- incrementing failure state on incorrect password
+- checking activation state after password verification
+- resetting failure state on success
+- passing the user into client-aware token issuance
 
-- finding the user by email or mobile
-- checking whether the account is currently locked
-- validating the password
-- updating failed-attempt state on failure
-- validating activation state
-- resetting lock/captcha counters on success
-- passing the authenticated user into client-aware token issuance
-
-This means successful password verification alone is not enough. The user must also be in a valid account state.
+This means password verification alone is not enough. The user must also be in a valid account state.
 
 ## Failed Login and Lockout Behavior
 
-The service tracks authentication failures per user.
+The current lockout behavior is stateful and progressive.
 
-Current behavior includes:
+Current code behavior includes:
 
 - incrementing `failedLoginCount` on incorrect password
-- enabling `showCaptcha` after repeated failures
-- locking the account after a higher threshold of failures
-- applying a time-based backoff window for locked accounts
+- enabling `showCaptcha` at 5 failed attempts
+- locking the account at 10 failed attempts
+- applying an exponential backoff lock window derived from failed-attempt count
 
-This is part of the authentication model because login is stateful at the user level, not just a stateless credential check.
-
-A user who is locked cannot authenticate again until the lock window has expired.
+The blocked-until value is returned in the lock exception message.
 
 ## Activation Requirement
 
-A correct password is not sufficient if the account has not been activated.
+For normal end-user credential login, authentication succeeds only if the account has already been activated.
 
-For end-user logins, authentication succeeds only if the account is already activated. This ties the login model directly to the registration and activation lifecycle.
+## External-Provider Login Model
+
+The external-provider path is implemented as registration-plus-token-issuance, not as a separate generic OAuth login subsystem.
+
+Current behavior:
+
+- supported providers are `GOOGLE` and `FACEBOOK`
+- the request always includes a `providerClientId`
+- the request may include either a direct provider token or an authorization code
+- when an authorization code is used, the server exchanges it with the provider using its configured server-side client credentials
+- when the local user already exists by email, that existing account is reused
+- after provider identity is accepted, the service issues normal local application tokens through a registered client
+
+### Google path
+
+Google supports:
+
+- direct ID token verification
+- authorization-code exchange to retrieve an ID token
+
+The exchanged or supplied ID token is then verified and decoded into local registration data.
+
+### Facebook path
+
+Facebook supports:
+
+- direct access-token use
+- authorization-code exchange to retrieve an access token
+
+The access token is then used to fetch user profile data from Facebook, and the email is treated as the local account identity key.
 
 ## Access Tokens
 
-The service issues JWT access tokens.
+The service issues signed JWT access tokens.
 
-These tokens are signed using configured signing keys, and the corresponding public keys are exposed through the JWKS endpoint.
+Access tokens include claims such as:
 
-Access tokens are used to authorize protected API requests and may include:
+- `jti`
+- `sub`
+- `iss`
+- `aud`
+- optional `scope`
+- timing claims such as `iat`, `nbf`, and `exp`
 
-- subject identity
-- token identifier (`jti`)
-- audience information
-- client identifier
-- scope-related claims
-- expiry information
-
-The exact contents and meaning depend on the client and the token-generation logic.
+New access tokens are signed with the currently active signing key.
 
 ## JWT Verification Model
 
-Access tokens are signed by the auth service and can be validated by consumers using the public keys published through JWKS.
+Within the service, access-token verification is not purely stateless.
 
-Within the service itself, access tokens are also checked against persisted token state during refresh and revocation-sensitive operations.
+The refresh path and revocation-sensitive paths combine:
 
-This means the model is not purely stateless JWT validation. A token may be cryptographically valid but still rejected because of server-side token state.
+- persisted token lookup by `jti`
+- client matching
+- blocked-token checks
+- signature verification using the loaded signing keys
+
+A token can therefore be cryptographically valid but still rejected because its persisted server-side state is invalid.
 
 ## Persisted Token State
 
 When the service issues tokens for a user, it also saves a `UserToken` record.
 
-This persisted state includes fields such as:
+That record includes fields such as:
 
-- token identifier (`jti`)
+- `jti`
 - user id
 - client id
 - audiences
 - scopes
 - access-token expiration
-- hashed refresh token
+- BCrypt-hashed refresh token
 - refresh-token expiration
 - blocked state
 - refresh-token-used state
 
-This persistent token record is critical to the security model because it enables:
+This persisted state enables:
 
 - revocation
 - refresh-token rotation
@@ -161,294 +191,138 @@ This persistent token record is critical to the security model because it enable
 
 Refresh tokens are supported only for clients that have refresh enabled.
 
-Refresh tokens are generated at token-issuance time and stored in hashed form in persistent storage. The raw refresh token is returned to the client, but the database stores only a hash for later verification.
+The raw refresh token returned to the client is a base64 string. Before storage, the service:
 
-This means the service treats refresh tokens more like secrets than simple opaque identifiers.
+- base64-decodes the raw refresh token
+- BCrypt-hashes the decoded value
+- stores only the BCrypt hash
+
+During refresh, the supplied token is base64-decoded again and checked against the stored BCrypt hash.
+
+## Refresh Validation Rules
+
+Refresh is based on both token state and client state.
+
+The refresh process validates:
+
+- persisted access-token record lookup by `jti`
+- refresh-token expiration
+- refresh-token-used flag
+- blocked-token state
+- requesting client id matches original token client id
+- client credentials when the client has a stored secret
+- JWT signature and claims using the original token client’s refresh TTL as clock-skew allowance
 
 ## Refresh Token Rotation
 
 Refresh tokens are single-use.
 
-When a refresh request succeeds, the service:
+When a refresh request succeeds, the service marks the old refresh token as used through an atomic repository update and then issues a new token pair.
 
-- validates the access token and persisted token record
-- verifies the submitted refresh token against the stored hash
-- marks the refresh token as used
-- issues a new token pair
-
-If the same refresh token is used again, the request is rejected.
-
-This is one of the most important parts of the model because it reduces replay risk and allows refresh-token theft to be detected more reliably.
-
-## Refresh Validation Rules
-
-Refresh is not based on the refresh token alone.
-
-The service validates:
-
-- the access token
-- the persisted token record
-- the refresh-token expiration
-- whether the refresh token was already used
-- whether the token is blocked
-- whether the requesting client matches the token’s original client
-- whether the client credentials are valid when required
-
-This makes refresh a tightly controlled, stateful operation.
+If the same refresh token is reused, the request is rejected.
 
 ## Web Refresh Model
 
-For `WEB` clients, refresh follows a cookie-oriented pattern.
+For `WEB` clients, refresh follows a cookie-oriented path.
 
-In that model:
+Current behavior:
 
 - the access token is read from the `jwt` cookie
-- the client is validated
-- token state is checked
-- a new access token is issued
-- the cookie is rewritten with the new token
-
-This provides a browser-oriented authentication experience while still relying on the same core token-state model.
+- the registered client must be of type `WEB`
+- the client must also support refresh tokens
+- a new access token is issued and written back into the `jwt` cookie
 
 ## Cookie-Based Authentication
 
-Some clients can be configured to receive the access token in an HTTP-only cookie rather than in the JSON response body.
+Some registered clients can be configured to receive access tokens in an HTTP-only cookie instead of the JSON response body.
 
-This is controlled by registered-client configuration.
+Current implementation details:
 
-The cookie-based model is intended for web applications, but its security properties depend heavily on deployment settings such as:
-
-- secure cookie usage
-- HTTPS enforcement
-- domain and path policy
-- CSRF strategy
-- frontend deployment model
-
-Because of that, cookie behavior should be documented together with production deployment guidance.
+- cookie name is `jwt`
+- cookie path is `/`
+- cookie max age comes from the registered client
+- cookies are currently created with `secure(false)` in code, which is acceptable for local HTTP testing but not a production-safe default
 
 ## Scope and Authority Model
 
-The service supports authority/scoping behavior through token claims and Spring Security authorization.
+The service supports scope-based authorization through token claims and Spring Security method protection.
 
-For user tokens, scopes may be derived from user roles when the registered client has scope support enabled.
+Current behavior:
 
-For service tokens, scopes represent client-level permissions and are used to restrict internal or backend access.
-
-This allows authorization decisions to be driven by token claims while still keeping issuance rules tied to client configuration.
+- when a client has `scopeEnabled=true`, user scopes are derived from the user’s role names
+- service tokens carry the client’s configured scopes
+- admin/service/user restrictions are enforced through Spring Security authorities such as `SCOPE_ADMIN` and `SCOPE_SERVICE`
 
 ## Client Credential Validation
 
-The registered client is not just metadata. It is part of the security boundary.
+The registered client is part of the security boundary.
 
-When tokens are issued or refreshed, the service validates the client and, when configured, checks the submitted client secret against the stored client secret.
+When tokens are issued or refreshed, the service:
 
-This ensures that:
+- resolves the registered client by `clientId`
+- checks the client secret when that client has a stored secret
+- rejects refresh if the token’s original client id and the requested client id differ
 
-- tokens are issued only for valid clients
-- refresh operations cannot be replayed under a different client
-- service login is restricted to `SERVICE` clients with valid credentials
-
-## Token Blocking and Revocation
+## Token Blocking and Logout
 
 The service supports server-side token revocation by marking tokens as blocked in persistent storage.
 
-A blocked token is treated as invalid for operations that consult server-side token state.
+Logout therefore has server-side effect rather than being only a client-side token deletion step.
 
-This is especially important because JWTs are otherwise self-contained and valid until expiry unless the server adds a revocation mechanism.
+## JWKS and Signing-Key Loading
 
-The service therefore combines:
+The service loads signing keys at startup from two coordinated inputs:
 
-- signed JWTs for portable authorization
-- persistent token state for revocation and refresh safety
+- `kurtuba.jwk.file`
+- `kurtuba.jwk.keys`
 
-## Logout Model
+### `kurtuba.jwk.file`
 
-Logout is implemented by blocking the current token rather than simply forgetting client-side state.
+This is loaded as a Spring `Resource`, so it can be provided as values such as:
 
-This means logout has server-side effect. After logout, the token’s persisted state reflects that it should no longer be accepted for protected token-state-aware operations.
+- `classpath:jwk.json`
+- `file:/absolute/path/to/jwk.json`
 
-This is a stronger model than client-side token deletion alone.
+### `kurtuba.jwk.keys`
 
-## Account State and Token Issuance
+This is a JSON object mapping entry id to base64 decryption secret.
 
-Token issuance depends not only on successful authentication but also on valid account state.
+### Startup loading behavior
 
-Examples of invalid user state include:
+At startup, the service:
 
-- account not activated
-- account locked
-- account flagged in a way that prevents token issuance
+1. reads the encrypted key entries from the JWK resource
+2. parses the `kurtuba.jwk.keys` JSON map
+3. matches every encrypted entry by `id`
+4. decrypts each `encryptedKey`
+5. sorts all loaded keys by `order` descending
+6. uses the highest-ordered key as the active signing key
 
-This ensures that the service does not issue fresh tokens for users whose state should prevent access.
-
-## Service Token Model
-
-Service tokens differ from user tokens in several ways:
-
-- they are issued to a registered client identity
-- they do not represent a human user
-- they are obtained through service login
-- they are intended to be short-lived
-- they are used for machine-to-machine authorization
-
-This separation is important because internal-service authentication should not be treated the same way as end-user session management.
-
-## Public Key Model
-
-The service exposes public signing keys through JWKS.
-
-This allows downstream consumers to validate JWT signatures without direct access to private key material.
-
-The authentication model therefore depends on:
-
-- private signing keys held by the auth service
-- public verification keys published to consumers
-- key identifiers that allow correct key selection during verification
-
-Key handling is a critical operational part of the model and should be documented further in configuration and deployment docs.
-
-## Signing Algorithms
-
-The resource-server JWT decoder is configured to accept public keys for:
-
-- `RS256`
-- `ES256`
-
-However, the current signing-key helper flow in the repository generates RSA JWKs by default. The practical result is:
-
-- the service can verify RSA- and EC-signed tokens when matching public keys are available
-- the built-in key-generation path is currently oriented toward RSA signing material
-- current deployments based on the provided helper classes are expected to use RSA-backed JWT signing
-
-Within token generation, the application signs JWTs using the private key loaded from the active JWK. The exact JWS algorithm is inferred from the key type by the signing library rather than hard-coded in the token builder.
-
-## How Signing Keys Are Loaded
-
-Signing keys are loaded by `TokenUtils` at startup.
-
-The loading model is:
-
-- encrypted signing-key entries are stored in `classpath:jwk.json`
-- decryption secrets are supplied through the `kurtuba.jwk.keys` property
-- each encrypted entry has an `id` and an `order`
-- all encrypted entries are decrypted into JWKs at startup
-- keys are sorted by `order` in descending order
-- the first key in that sorted list becomes the active signing key
-- all loaded keys remain available for verification and JWKS publication
-
-This means the service supports a simple key-rollover model where one key is active for signing while older keys can remain available for verification.
-
-## Active Signing Key Selection
-
-The service does not choose the active key by creation date or by a separate “current” flag.
-
-Instead, the active signing key is selected by ordering:
-
-- the highest `order` value wins
-- the first key after descending sort is used for signing new JWTs
-- lower-ordered keys remain valid for verifying previously issued tokens
-
-This is a simple and effective rollout mechanism as long as operators manage `order` values carefully.
+If the supplied key map does not contain a matching secret for an entry id, startup fails.
 
 ## JWKS Publication Behavior
 
 The JWKS endpoint publishes the public portion of all loaded signing keys, not only the active one.
 
-This is important for rotation because downstream verifiers need access to:
+Current public endpoint:
+- `/auth/oauth2/jwks`
 
-- the current key for newly issued tokens
-- older public keys for tokens that are still valid but were signed before rotation
+That enables overlap windows during key rotation, where new tokens are signed with the newest key while older tokens remain verifiable.
 
-In other words, rotation safety depends on keeping previous public keys available long enough for all previously issued JWTs to expire.
+## Supported Signature Algorithms
 
-## Encrypted JWK Storage Model
+The security configuration accepts verification of:
 
-Private signing keys are not stored in plain JSON in the main runtime path.
+- `RS256`
+- `ES256`
 
-Instead, the service uses a two-part model:
+The bundled helper path currently defaults to RSA key generation, so the practical default deployment model is still RSA signing unless operators deliberately generate and deploy EC keys.
 
-- `jwk.json` stores encrypted JWK payloads
-- `kurtuba.jwk.keys` stores the corresponding decryption secrets
-
-At startup, the application:
-
-- reads the encrypted JWK entries
-- looks up the decryption secret by entry `id`
-- decrypts the stored JWE payload
-- reconstructs the full JWK, including private key material
-
-This is better than storing private JWKs in plaintext, but it is still not equivalent to using an HSM, KMS, or dedicated secret-management platform. Production use should therefore treat this as an application-managed key-protection scheme, not as hardened enterprise key custody.
-
-## Encryption Used for Stored JWKs
-
-The helper flow in `JwkGenerator` encrypts signing JWK payloads as JWE before they are stored.
-
-The current helper uses:
-
-- key management algorithm: `A256GCMKW`
-- content encryption method: `AES_256_GCM`
-
-This encryption step protects the serialized private JWK payload at rest in the repository-managed file format, provided the decryption secret is stored separately and securely.
-
-## Key Generation Helpers
-
-The codebase includes helper methods for generating signing material:
-
-- RSA JWK generation
-- EC JWK generation for `ES256`
-- JWE wrapping of generated JWK payloads
-
-The currently wired helper path uses RSA JWK generation when producing encrypted signing entries. There is also helper support for generating EC keys, but that is not the default path used by the bundled JWE generator.
-
-## Recommended Rotation Model
-
-The current implementation supports staged signing-key rotation.
-
-A safe rotation sequence is:
-
-1. Generate a new signing key pair and encrypt it into the same storage format used by `jwk.json`.
-2. Add the new encrypted entry to `jwk.json` with a higher `order` than the current active key.
-3. Add the matching decryption secret under the same `id` in `kurtuba.jwk.keys`.
-4. Deploy the service with both old and new keys present.
-5. Allow new tokens to be signed by the new highest-ordered key while old tokens continue to verify against older published public keys.
-6. Wait until all tokens signed by the old key are expired, including any operational grace window you require.
-7. Remove the old encrypted key entry and its decryption secret in a later deployment.
-
-This preserves verification continuity during rollout and avoids invalidating still-active tokens prematurely.
-
-## Operational Risks Around Rotation
-
-Key rotation will fail or cause outages if any of the following happen:
-
-- the new encrypted key is added without its matching decryption secret
-- the `order` values are incorrect and the wrong key becomes active
-- old public keys are removed before previously issued tokens expire
-- `auth.server.issuer-url` or JWKS publication changes unexpectedly during rotation
-- downstream services cache JWKS too aggressively without respecting rollover
-
-Because of that, key rotation should be treated as a planned operational change, not just a config edit.
-
-## Security Characteristics
-
-The authentication model is designed around the following properties:
-
-- signed access tokens
-- persisted token-state tracking
-- hashed refresh tokens
-- one-time-use refresh semantics
-- client-aware issuance rules
-- account-state-aware login
-- server-side token blocking
-- role/scope-based authorization
-
-These properties together make the service more than a simple stateless JWT issuer.
-
-## Important Documentation Follow-Ups
+## Relationship to Other Documents
 
 This document should be read together with:
 
-- `docs/capabilities.md` for user-facing and system-facing features
-- `docs/key-management.md` for signing algorithms, active-key selection, storage, and rotation procedures
-- `docs/configuration.md` for client, token, JWK, mail, SMS, and database settings
-- `docs/demo-vs-production.md` for security-sensitive defaults and required hardening
-- `docs/api.md` for endpoint-level request and response behavior
+- `docs/capabilities.md`
+- `docs/api.md`
+- `docs/configuration.md`
+- `docs/key-management.md`

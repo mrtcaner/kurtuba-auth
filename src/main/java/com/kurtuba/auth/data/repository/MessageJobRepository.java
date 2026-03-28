@@ -9,6 +9,7 @@ import org.springframework.data.repository.CrudRepository;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 public interface MessageJobRepository extends CrudRepository<MessageJob, String> {
 
@@ -26,4 +27,9 @@ public interface MessageJobRepository extends CrudRepository<MessageJob, String>
     List<MessageJob> findByStateAndContactTypeAndMessageServiceProviderTypeAndSendAfterDateBefore(MessageJobStateType state, ContactType contactType,
                                                                      MessageServiceProviderType serviceProvider,
                                                                      Instant before);
+
+    @Query("SELECT job FROM MessageJob job " +
+           "INNER JOIN UserMetaChange umc on umc.userId = :userId " +
+           "WHERE job.userMetaChangeId = :userMetaChangeId")
+    Optional<MessageJob> findByUserMetaChangeIdAndUserId(String userMetaChangeId, String userId);
 }

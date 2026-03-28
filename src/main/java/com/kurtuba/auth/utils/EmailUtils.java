@@ -25,6 +25,7 @@ public class EmailUtils {
         htmlFileContent = htmlFileContent.replace("${closing}", verificationMailDto.getClosing());
         htmlFileContent = htmlFileContent.replace("${closingSubject}", verificationMailDto.getClosingSubject());
         htmlFileContent = htmlFileContent.replace("${getInTouch}", verificationMailDto.getGetInTouch());
+        htmlFileContent = htmlFileContent.replace("${supportEmail}", verificationMailDto.getSupportEmail());
         return htmlFileContent;
     }
 

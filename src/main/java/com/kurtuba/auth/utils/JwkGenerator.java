@@ -31,8 +31,7 @@ import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.text.ParseException;
 import java.time.Instant;
-import java.util.Date;
-import java.util.UUID;
+import java.util.*;
 
 /**
  *
@@ -94,7 +93,7 @@ class JwkGenerator {
 
         /*String jws = Jwts.builder()
                 .setHeader(Map.of("kid",publicJsonWebKey.getKeyId()))
-                .setIssuer("http://192.168.1.38:8080")
+                .setIssuer("http://localhost:8080")
                 .setSubject("f1c7e803-b443-47f9-83a1-a77dcff7be38")
                 .setAudience("mobile-client")
                 // Fri Jun 24 2016 15:33:42 GMT-0400 (EDT)
@@ -192,11 +191,11 @@ class JwkGenerator {
     public static String createJwe() throws JoseException, NoSuchAlgorithmException, InvalidKeySpecException {
         // generate signing key for jwt
         // this key will be used to sign tokens
-        String jwkJson = createRsaJwk();
+        String jwkJson = createEsJwk();
 
         // generate secret key for jwe
         // this secret will be used to open the encrypted jwkJson
-        Key key = getPasswordBasedKey("AES",256,"8vn79b64urcmenvb5974".toCharArray());
+        Key key = getPasswordBasedKey("AES",256,"928349on2384vb298340".toCharArray());
         String secretString = Encoders.BASE64.encode(key.getEncoded());
         System.out.println("Secret key: " + secretString);
 

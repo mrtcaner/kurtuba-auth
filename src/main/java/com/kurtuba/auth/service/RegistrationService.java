@@ -1,5 +1,7 @@
 package com.kurtuba.auth.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kurtuba.auth.data.dto.RegistrationDto;
 import com.kurtuba.auth.data.dto.RegistrationOtherProviderDto;
 import com.kurtuba.auth.data.dto.TokensResponseDto;
@@ -17,25 +19,35 @@ import com.kurtuba.auth.error.exception.BusinessLogicException;
 import com.kurtuba.auth.utils.ServiceUtils;
 import com.kurtuba.auth.utils.TokenUtils;
 import com.kurtuba.auth.utils.annotation.MobileNumber;
-import com.nimbusds.jose.shaded.gson.JsonObject;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.core.endpoint.OAuth2ParameterNames;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClient;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static com.kurtuba.auth.utils.Utils.generateVerificationCode;
 
 @Service
 public class RegistrationService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RegistrationService.class);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     final
     UserService userService;
@@ -69,6 +81,14 @@ public class RegistrationService {
     private int activationEmailCodeValidityMinutes;
     @Value("${kurtuba.meta-change.validity.sms.activation-code.minutes}")
     private int activationSmsCodeValidityMinutes;
+    @Value("${kurtuba.auth-provider.google.client-id:}")
+    private String googleClientId;
+    @Value("${kurtuba.auth-provider.google.client-secret:}")
+    private String googleClientSecret;
+    @Value("${kurtuba.auth-provider.facebook.client-id:}")
+    private String facebookClientId;
+    @Value("${kurtuba.auth-provider.facebook.client-secret:}")
+    private String facebookClientSecret;
 
     public RegistrationService(UserService userService, UserMetaChangeService userMetaChangeService, AuthenticationService authenticationService, UserTokenService userTokenService, MessageJobService messageJobService, UserRoleService userRoleService, LocalizationAvailableLocaleRepository localizationAvailableLocaleRepository, ServiceUtils serviceUtils) {
         this.userService = userService;
@@ -146,28 +166,22 @@ public class RegistrationService {
 
 
     @Transactional
-    public RegistrationDto registerByAnotherProvider(@Valid RegistrationOtherProviderDto newUserByOtherProvider) {
+    public User registerByAnotherProvider(@Valid RegistrationOtherProviderDto newUserByOtherProvider) {
 
         RegistrationDto decodedUser = null;
         if (newUserByOtherProvider.getProvider().equals(AuthProviderType.GOOGLE)) {
             try {
-                decodedUser = TokenUtils.decodeGoogleToken(newUserByOtherProvider.getToken(), newUserByOtherProvider.getClientId());
+                decodedUser = decodeGoogleRegistration(newUserByOtherProvider);
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.warn("Google token registration failed", e);
                 throw new BusinessLogicException(ErrorEnum.USER_OTHER_PROVIDER_INVALID_TOKEN);
             }
         }
         if (newUserByOtherProvider.getProvider().equals(AuthProviderType.FACEBOOK)) {
             try {
-
-                JsonObject jsonUser = TokenUtils.decodeTokenPayload(newUserByOtherProvider.getToken());
-                decodedUser = new RegistrationDto();
-                decodedUser.setEmail(jsonUser.get("email").getAsString());
-                decodedUser.setName(jsonUser.get("given_name").getAsString());
-                decodedUser.setSurname(jsonUser.get("family_name").getAsString());
-                decodedUser.setAuthProvider(AuthProviderType.FACEBOOK);
+                decodedUser = decodeFacebookRegistration(newUserByOtherProvider);
             } catch (Exception e) {
-                e.printStackTrace();
+                LOGGER.warn("Facebook token registration failed", e);
                 throw new BusinessLogicException(ErrorEnum.USER_OTHER_PROVIDER_INVALID_TOKEN);
             }
         }
@@ -181,8 +195,7 @@ public class RegistrationService {
             //this user never existed, let make one and return a token
             User user = decodedUser.toUser();
             user.setEmailVerified(true);
-            String pass = UUID.randomUUID().toString();
-            user.setPassword(new BCryptPasswordEncoder().encode(pass));
+            user.setPassword(new BCryptPasswordEncoder().encode(UUID.randomUUID().toString()));
             /*String provisionalUsername = user.getEmail().split("@")[0];
             if (provisionalUsername.length() > 25) {
                 provisionalUsername = provisionalUsername.substring(0, 25);
@@ -190,50 +203,177 @@ public class RegistrationService {
             user.setUsername(provisionalUsername + "." + generateRandomAlphanumericString(6));*/
             user.getUserSetting().setCanChangeUsername(true);
             user.getUserSetting().setLocale(localizationAvailableLocaleRepository
-                    .findByLanguageCodeAndCountryCode(user.getUserSetting().getLocale().getLanguageCode(),
-                            user.getUserSetting().getLocale().getCountryCode())
+                    .findByLanguageCodeAndCountryCode(newUserByOtherProvider.getLanguageCode(),
+                                                      newUserByOtherProvider.getCountryCode())
                     .orElseThrow(() -> new BusinessLogicException(ErrorEnum.LOCALIZATION_UNSUPPORTED_REGION)));
             user.getUserSetting().setCreatedDate(Instant.now());
             user.getUserSetting().setUser(user);
+            user.setActivated(true);
             // save user and userSettings
             userService.saveUser(user);
             user.setUserRoles(List.of(
                     UserRole.builder()
                             .user(user)
                             .role(Role.builder().name(AuthoritiesType.USER.name()).build())
+                            .createdDate(Instant.now())
                             .build()));
             // save roles
             userRoleService.create(user.getUserRoles().get(0));
-            decodedUser.setPassword(pass);
-            return decodedUser;
+            return user;
         }
 
-        if (existingUser.getAuthProvider().equals(AuthProviderType.KURTUBA)) {
-            //this is a regular user and we cannot return a token without changing pass so have to log in properly. Throw error
-            throw new BusinessLogicException(ErrorEnum.USER_EMAIL_ALREADY_EXISTS);
+        if (!existingUser.isActivated() || existingUser.isLocked() || existingUser.isShowCaptcha()) {
+            throw new BusinessLogicException(ErrorEnum.USER_INVALID_STATE);
         }
 
         if (existingUser.getAuthProvider().equals(newUserByOtherProvider.getProvider())) {
-            //this email with the given provider exists. check active, lock etc. fields and return a token
-            if (existingUser.isActivated() && !existingUser.isLocked()) {
-                String pass = UUID.randomUUID().toString();
-                existingUser.setPassword(new BCryptPasswordEncoder().encode(pass));
-                decodedUser.setPassword(pass);
-                userService.saveUser(existingUser);
-                return decodedUser;//accessTokenUtil.getAccessToken(existingUser.getEmail(), pass);
-            }
-
+            return existingUser;
         }
 
-        //This email with different provider exists. TODO Check active, lock etc fields and return a token
-        //That also means as long as user uses other providers with same email, same user will be logged in
-        String pass = UUID.randomUUID().toString();
-        existingUser.setPassword(new BCryptPasswordEncoder().encode(pass));
-        existingUser.setAuthProvider(decodedUser.getAuthProvider());
-        decodedUser.setPassword(pass);
-        userService.saveUser(existingUser);
-        return decodedUser;//accessTokenUtil.getAccessToken(existingUser.getEmail(), pass);
+        // same email is treated as the same account across manual and social providers
+        return existingUser;
 
+    }
+
+    RegistrationDto decodeGoogleRegistration(RegistrationOtherProviderDto request) {
+        String token = request.getToken();
+        if (!StringUtils.hasLength(token)) {
+            token = exchangeGoogleAuthorizationCodeForIdToken(request);
+        }
+
+        return decodeGoogleRegistrationFromIdToken(token, request.getProviderClientId());
+    }
+
+    RegistrationDto decodeGoogleRegistrationFromIdToken(String token, String clientId) {
+        try {
+            return TokenUtils.decodeGoogleToken(token, clientId);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    RegistrationDto decodeFacebookRegistration(RegistrationOtherProviderDto request) {
+        String token = request.getToken();
+        if (!StringUtils.hasLength(token)) {
+            token = exchangeFacebookAuthorizationCodeForAccessToken(request);
+        }
+
+        Map<String, Object> jsonUser = fetchFacebookUserData(token);
+        RegistrationDto decodedUser = new RegistrationDto();
+        decodedUser.setEmail((String) jsonUser.get("email"));
+        decodedUser.setName((String) jsonUser.get("first_name"));
+        decodedUser.setSurname((String) jsonUser.get("last_name"));
+        decodedUser.setAuthProvider(AuthProviderType.FACEBOOK);
+
+        if (!StringUtils.hasLength(decodedUser.getEmail())) {
+            throw new IllegalArgumentException("Facebook user info is missing email");
+        }
+
+        if (!StringUtils.hasLength(decodedUser.getName()) && jsonUser.get("name") instanceof String fullName) {
+            decodedUser.setName(fullName);
+        }
+
+        return decodedUser;
+    }
+
+    String exchangeGoogleAuthorizationCodeForIdToken(RegistrationOtherProviderDto request) {
+        validateAuthorizationCodeRequest(request, googleClientId, googleClientSecret, "Google");
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add(OAuth2ParameterNames.CLIENT_ID, googleClientId);
+        formData.add(OAuth2ParameterNames.CLIENT_SECRET, googleClientSecret);
+        formData.add(OAuth2ParameterNames.CODE, request.getAuthorizationCode());
+        formData.add(OAuth2ParameterNames.REDIRECT_URI, request.getRedirectUri());
+        formData.add(OAuth2ParameterNames.GRANT_TYPE, "authorization_code");
+
+        Map<String, Object> tokenResponse = readMapResponse(RestClient.create("https://oauth2.googleapis.com")
+                .post()
+                .uri("/token")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(formData)
+                .retrieve()
+                .body(String.class), "Google token response");
+
+        Object idToken = tokenResponse.get("id_token");
+        if (!(idToken instanceof String idTokenString) || !StringUtils.hasLength(idTokenString)) {
+            throw new IllegalArgumentException("Google token response is missing id_token");
+        }
+        return idTokenString;
+    }
+
+    String exchangeFacebookAuthorizationCodeForAccessToken(RegistrationOtherProviderDto request) {
+        validateAuthorizationCodeRequest(request, facebookClientId, facebookClientSecret, "Facebook");
+
+        Map<String, Object> tokenResponse = readMapResponse(RestClient.create("https://graph.facebook.com")
+                .get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/v25.0/oauth/access_token")
+                        .queryParam("client_id", facebookClientId)
+                        .queryParam("client_secret", facebookClientSecret)
+                        .queryParam("redirect_uri", request.getRedirectUri())
+                        .queryParam("code", request.getAuthorizationCode())
+                        .build())
+                .retrieve()
+                .body(String.class), "Facebook token response");
+
+        Object accessToken = tokenResponse.get("access_token");
+        if (!(accessToken instanceof String accessTokenString) || !StringUtils.hasLength(accessTokenString)) {
+            throw new IllegalArgumentException("Facebook token response is missing access_token");
+        }
+        return accessTokenString;
+    }
+
+    Map<String, Object> fetchFacebookUserData(String token) {
+        String responseBody = RestClient.create("https://graph.facebook.com")
+                .get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/me")
+                        .queryParam("fields", "email,first_name,last_name,name")
+                        .queryParam("access_token", token)
+                        .build())
+                .retrieve()
+                .body(String.class);
+
+        Map<String, Object> response;
+        try {
+            response = OBJECT_MAPPER.readValue(responseBody, new TypeReference<>() {
+            });
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Facebook user info response is invalid", e);
+        }
+
+        if (response == null || response.isEmpty()) {
+            throw new IllegalArgumentException("Facebook user info response is empty");
+        }
+
+        return response;
+    }
+
+    private void validateAuthorizationCodeRequest(RegistrationOtherProviderDto request,
+                                                  String configuredClientId,
+                                                  String configuredClientSecret,
+                                                  String providerName) {
+        if (!StringUtils.hasLength(request.getAuthorizationCode())) {
+            throw new IllegalArgumentException(providerName + " authorization code is missing");
+        }
+        if (!StringUtils.hasLength(request.getRedirectUri())) {
+            throw new IllegalArgumentException(providerName + " redirect URI is missing");
+        }
+        if (!StringUtils.hasLength(configuredClientId) || !StringUtils.hasLength(configuredClientSecret)) {
+            throw new IllegalStateException(providerName + " OAuth client is not configured on the server");
+        }
+        if (!configuredClientId.equals(request.getProviderClientId())) {
+            throw new IllegalArgumentException(providerName + " client ID does not match server configuration");
+        }
+    }
+
+    private Map<String, Object> readMapResponse(String responseBody, String responseName) {
+        try {
+            return OBJECT_MAPPER.readValue(responseBody, new TypeReference<>() {
+            });
+        } catch (Exception e) {
+            throw new IllegalArgumentException(responseName + " is invalid", e);
+        }
     }
 
     @Transactional

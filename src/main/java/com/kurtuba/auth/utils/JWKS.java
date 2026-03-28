@@ -10,11 +10,15 @@ import com.nimbusds.jose.util.DefaultResourceRetriever;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
 import com.nimbusds.jwt.proc.DefaultJWTProcessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.net.URL;
 
 public class JWKS {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(JWKS.class);
 
     
     public static void main(String[] args) throws Exception {
@@ -38,7 +42,7 @@ public class JWKS {
                     new DefaultResourceRetriever(12000, 12000));
 
         } catch (MalformedURLException e) {
-            e.printStackTrace();
+            LOGGER.error("Invalid JWKS URL configured for test utility", e);
         }
         //    JWKSource keySource = new RemoteJWKSet(new URL("https://localhost:9443/oauth2/jwks"));
 
@@ -54,7 +58,7 @@ public class JWKS {
         JWTClaimsSet claimsSet = jwtProcessor.process(accessToken, ctx);
 
         // Print out the token claims set
-        System.out.println(claimsSet.toJSONObject());
+        LOGGER.info("Decoded claims set: {}", claimsSet.toJSONObject());
     }
 
 }

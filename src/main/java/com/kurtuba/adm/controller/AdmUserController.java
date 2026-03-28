@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("adm")
+@RequestMapping("/auth/adm")
 public class AdmUserController {
 
     final

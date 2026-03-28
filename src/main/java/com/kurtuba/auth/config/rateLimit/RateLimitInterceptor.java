@@ -10,6 +10,8 @@ import io.github.bucket4j.ConsumptionProbe;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.PathContainer;
@@ -26,6 +28,8 @@ import java.util.Map;
 @ConditionalOnProperty(prefix = "kurtuba.rate-limit", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class RateLimitInterceptor implements HandlerInterceptor {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(RateLimitInterceptor.class);
+
     private final RateLimitingService rateLimitingService;
     private final PathPatternParser parser = new PathPatternParser();
     private final ObjectMapper objectMapper;
@@ -41,10 +45,9 @@ public class RateLimitInterceptor implements HandlerInterceptor {
                                               .orElse(null);
 
         if (matchedApi == null){
-            System.out.println("path not matched:" + path);
             return true; // Not a rate-limited path
         }
-        System.out.println("path matched:" + path);
+        LOGGER.debug("Rate limit matched for path {}", path);
         // 2. Resolve bucket and consume
         String clientIp = getClientIp(request);
         Bucket bucket = rateLimitingService.resolveBucket(clientIp, matchedApi);
@@ -56,6 +59,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         } else {
             // 3. Handle rejection
             long waitForRefill = probe.getNanosToWaitForRefill() / 1_000_000_000;
+            LOGGER.warn("Rate limit exceeded for path {} from ip {}, retry after {} seconds", path, clientIp, waitForRefill);
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.addHeader("X-Rate-Limit-Retry-After-Seconds", String.valueOf(waitForRefill));
             response.setContentType("application/json");
